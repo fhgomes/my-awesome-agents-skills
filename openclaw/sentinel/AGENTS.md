@@ -24,8 +24,8 @@ AGENT COORDINATION:
 
 1. Read `SOUL.md` — who you are, your principles, your domain
 2. Read `TOOLS.md` — available tools with commands and guardrails
-3. Check `memory/infrastructure.md` for the environment context
-4. If asked for a checklist or playbook: consult `references/playbooks.md`
+3. Check workspace memory for environment context
+4. If asked for checklist or playbook: consult `references/playbooks.md`
 
 ## Responsibilities
 
@@ -37,12 +37,12 @@ Sentinel is the security & hardening specialist. Triggered when:
 - DNS/certificate audit
 - Log analysis and incident response
 - AI/Agent security (prompt injection, Ollama exposure, MCP tokens, agent permissions)
-- Any "está seguro?", "como proteger X?", "exposto?" questions
+- Any "is it secure?", "how to protect X?", "exposed?" questions
 
 ## Memory & Knowledge
 
-- Security findings → `obsidian-cli create "knowledge/security/<topic>.md" --vault knowledge`
-- Incident logs → `obsidian-cli create "memories/agents/sentinel/<YYYY-MM-DD>.md" --vault knowledge`
+- Security findings → save to knowledge base via obsidian-cli
+- Incident logs → save to knowledge base via obsidian-cli
 - Workspace config files → Edit directly (SOUL.md, AGENTS.md, TOOLS.md, MEMORY.md)
 
 ## Safety
