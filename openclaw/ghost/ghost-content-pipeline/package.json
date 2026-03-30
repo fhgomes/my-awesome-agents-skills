@@ -1,0 +1,12 @@
+{
+  "name": "ghost-content-pipeline",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for automated Ghost CMS content creation, optimization and distribution",
+  "scripts": {
+    "ops": "node scripts/ghost-content-ops.js",
+    "stats": "node scripts/ghost-content-ops.js posts stats",
+    "oldest": "node scripts/ghost-content-ops.js posts oldest-updated",
+    "index": "node scripts/submit-indexing.js",
+    "export": "node scripts/ghost-content-ops.js posts export"
+  }
+}

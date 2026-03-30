@@ -1,0 +1,14 @@
+{
+  "name": "ghost-selfhost-admin",
+  "version": "1.0.0",
+  "description": "OpenClaw skill for Ghost CMS self-hosted administration via Admin API + Playwright",
+  "scripts": {
+    "setup": "npm install && npx playwright install chromium",
+    "check": "node scripts/ghost-api-check.js",
+    "api": "node scripts/ghost-admin-client.js",
+    "ui": "node scripts/ghost-playwright-admin.js"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}
