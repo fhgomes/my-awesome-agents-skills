@@ -214,7 +214,7 @@ Level 4 (enterprise): Keycloak as IdP + nginx auth_request
 [ ] No hardcoded secrets in docker-compose.yml
 ```
 
-### Secure Docker Compose Template (Nando Pattern)
+### Secure Docker Compose Template (Recommended Pattern)
 ```yaml
 # Example: Spring Boot + PostgreSQL + Nginx
 version: "3.8"

@@ -1,160 +1,166 @@
 ---
 name: ghost-selfhost-admin
 description: >
-  Administração completa de instância Ghost CMS self-hosted via Admin API e Playwright.
-  Use SEMPRE que precisar: configurar Ghost (título, descrição, logo, favicon, social links, 
-  timezone, language), gerenciar temas (upload, ativar, preview, customizar design settings), 
-  configurar SEO (meta tags, Open Graph, Twitter cards, structured data), gerenciar navigation 
-  menus, code injection (header/footer scripts), configurar newsletters e email (Mailgun/SMTP), 
-  gerenciar members e tiers, configurar Portal (signup/signin), upload de imagens, gerenciar 
-  integrações e API keys, configurar routes.yaml, gerenciar staff users e roles, 
-  configurar Labs features, ou qualquer variação de "configurar meu Ghost", "mudar o tema", 
-  "ajustar SEO", "adicionar script no header". Também acione quando o usuário mencionar: 
-  "ghost admin", "ghost settings", "ghost theme", "ghost config", "code injection", 
-  "ghost newsletter", "ghost members", "ghost portal", "ghost routes".
+  Full administration of a self-hosted Ghost CMS instance — initial setup (2FA login),
+  ongoing config via Admin API (settings, themes, images, navigation, code injection,
+  social links), and Playwright fallback for UI-only operations (portal, email config,
+  labs, custom theme settings, user management).
 metadata:
   openclaw:
     emoji: "👻"
     requires:
-      env: ["GHOST_URL", "GHOST_ADMIN_API_KEY"]
-      binaries: ["node", "npx"]
+      env: ["GHOST_URL"]
+      binaries: ["node", "python3"]
     primaryEnv: "GHOST_ADMIN_API_KEY"
-    files: ["scripts/*"]
+    files: ["scripts/*", "lib/*"]
 ---
 
 # Ghost Self-Host Admin
 
-Skill especialista em administração de instância Ghost CMS self-hosted.
-Combina Ghost Admin API (para operações programáticas) com Playwright (para configurações que só existem na UI admin).
+Full administration skill for self-hosted Ghost CMS. Covers initial setup through
+ongoing configuration, with three operational phases.
 
-## Arquitetura de Dois Canais
+## Three Phases of Ghost Admin
 
-### Canal 1: Ghost Admin API (preferencial)
-Para tudo que a API suporta. Mais rápido, confiável, scriptável.
+### Phase 1: Initial Setup (before API key exists)
 
-**Endpoints disponíveis:**
-- `POST/PUT/GET/DELETE /posts/` — CRUD de posts
-- `POST/PUT/GET/DELETE /pages/` — CRUD de pages
-- `GET/PUT /settings/` — Site settings (título, descrição, etc.)
-- `POST /images/upload/` — Upload de imagens
-- `POST /themes/upload/` — Upload de temas (zip)
-- `PUT /themes/{name}/activate/` — Ativar tema
-- `POST/PUT/GET/DELETE /tags/` — CRUD de tags
-- `GET/PUT /users/` — Gerenciar users
-- `POST/PUT/GET/DELETE /members/` — CRUD de members
-- `POST/PUT/GET/DELETE /newsletters/` — CRUD de newsletters
-- `POST/PUT/GET/DELETE /tiers/` — CRUD de tiers
-- `POST/PUT/GET/DELETE /offers/` — CRUD de offers
-- `POST/PUT/GET/DELETE /webhooks/` — CRUD de webhooks
-- `GET /site/` — Info do site
+First-time login uses email + password + 2FA. These scripts handle the bootstrap
+before you have an Admin API key.
 
-### Canal 2: Playwright (fallback para UI-only)
-Para configurações que NÃO têm endpoint na API estável.
+```bash
+# Automated setup: login with 2FA + configure site
+python3 scripts/ghost-setup.py --env /path/to/.env
 
-**Operações UI-only que requerem Playwright:**
-- Design settings (cores, tipografia, brand)
-- Code injection (header/footer)
-- Navigation menus (primary/secondary)
-- Portal settings (signup form, plans, button style)
-- Email settings (Mailgun config, from address)
-- Labs features toggles
+# Shell alternative: login only (saves session for ghost-post.sh)
+./scripts/ghost-login.sh /path/to/.env
+```
+
+**After first login:** create an Admin API key. You can do this via Playwright:
+
+```bash
+node scripts/ghost-create-integration.js --env=/path/to/.env --name="My Automation"
+# Outputs: GHOST_ADMIN_API_KEY=id:secret → add to .env
+```
+
+Or manually: Ghost Admin UI → Settings → Integrations → Add Custom Integration → copy `id:secret`.
+
+### Phase 2: Admin API (preferred — with API key)
+
+Once you have an API key, use JWT-based scripts for everything the API supports.
+Faster, no 2FA needed, fully scriptable.
+
+```bash
+# Health check
+node scripts/ghost-api-check.js
+
+# Settings (title, description, timezone, language, navigation, social, code injection, accent color)
+node scripts/ghost-admin-client.js settings get
+node scripts/ghost-admin-client.js settings update --json='{"title":"My Blog","description":"...", "navigation":"[...]"}'
+
+# Images
+node scripts/ghost-admin-client.js images upload --file=/path/to/logo.png
+
+# Themes
+node scripts/ghost-admin-client.js themes list
+node scripts/ghost-admin-client.js themes upload --file=/path/to/theme.zip
+node scripts/ghost-admin-client.js themes activate --name=casper
+
+# Generic CRUD (posts, pages, tags, members, newsletters, tiers, offers, webhooks)
+node scripts/ghost-admin-client.js posts list --limit=5 --status=published
+node scripts/ghost-admin-client.js members list --limit=10
+```
+
+**What the API key (JWT) covers:**
+
+| Operation | Endpoint | API Key? |
+|-----------|----------|----------|
+| Read all settings | `GET /settings/` | ✅ read-only |
+| **Write settings** (title, nav, social, etc.) | `PUT /settings/` | ❌ **session auth only** |
+| Themes (upload, activate, list) | `/themes/` | ✅ |
+| Posts, pages, tags | Full CRUD | ✅ |
+| Members, newsletters, tiers, offers | Full CRUD | ✅ |
+| Webhooks | Full CRUD | ✅ |
+| Images | `POST /images/upload/` | ✅ |
+| Users | `GET /users/` | ✅ read-only |
+
+> **Important:** Ghost 5.x does NOT allow writing settings via Integration API keys.
+> `PUT /settings/` returns 501 "Not Implemented" with JWT auth.
+> To change settings programmatically, use **Phase 1 scripts** (session-based login with 2FA)
+> or **Playwright**.
+
+### Phase 3: Playwright (UI-only operations)
+
+For things with no stable API endpoint:
+
+```bash
+node scripts/ghost-playwright-admin.js login
+node scripts/ghost-playwright-admin.js screenshot --page=dashboard
+node scripts/ghost-playwright-admin.js code-injection --header="..." --footer="..."
+```
+
+**Operations that require Playwright or session auth:**
+- **Write settings** (title, description, navigation, social, code injection, accent color)
+- Create custom integrations (generate API keys)
+- Invite/create/delete staff users
+- Portal configuration (signup form, plans, button style)
+- Email/Mailgun/SMTP configuration
+- Labs feature toggles
+- Custom theme settings (theme-specific design options)
 - Routes.yaml editor
-- Custom theme settings
-- Social accounts configuration
-- Analytics/tracking settings
 
-## Pré-requisitos
+## Environment Variables
 
-### Obrigatórios
+### Required
 ```bash
-# Variáveis de ambiente
-GHOST_URL=https://seu-ghost.com        # URL da instância Ghost
-GHOST_ADMIN_API_KEY=id:secret          # Admin API key (Settings > Integrations)
+GHOST_URL=https://your-ghost.com
 ```
 
-### Para operações Playwright (UI-only)
+### For API operations (Phase 2)
 ```bash
-GHOST_ADMIN_EMAIL=admin@seu-ghost.com  # Email do admin
-GHOST_ADMIN_PASSWORD=sua-senha         # Senha do admin
+GHOST_ADMIN_API_KEY=id:secret    # Settings > Integrations > Custom Integration
 ```
 
-### Setup inicial
+### For Playwright operations (Phase 3)
 ```bash
-# Instalar dependências
-cd $SKILL_DIR && npm run setup
-
-# Verificar conexão com Ghost
-cd $SKILL_DIR && node scripts/ghost-api-check.js
+GHOST_ADMIN_EMAIL=admin@your-ghost.com
+GHOST_ADMIN_PASSWORD=your-password
 ```
 
-## Workflows
-
-### 1. Configuração Inicial do Site
-Quando o usuário quer configurar um Ghost do zero ou reconfigurar:
-
-```
-1. Verificar conexão → scripts/ghost-api-check.js
-2. Configurar settings básicos via API:
-   - Título, descrição, timezone, language
-   - Meta title, meta description
-   - Social links (Twitter, Facebook)
-3. Upload de logo e favicon via API → POST /images/upload/
-4. Configurar navigation via Playwright → playbooks/configure-navigation.md
-5. Configurar code injection via Playwright → playbooks/code-injection.md
+### For initial setup (Phase 1)
+```bash
+GHOST_ADMIN=admin@your-ghost.com
+GHOST_PASSWORD=your-password
+GHOST_GMAIL_USER=your@gmail.com
+GHOST_GMAIL_PASSWORD=xxxx xxxx xxxx xxxx   # Gmail app password for 2FA extraction
 ```
 
-### 2. Gerenciamento de Temas
+## File Structure
+
 ```
-1. Listar temas instalados → GET /themes/
-2. Upload de tema (arquivo .zip) → POST /themes/upload/
-3. Ativar tema → PUT /themes/{name}/activate/
-4. Configurar design settings via Playwright → playbooks/theme-design.md
-5. Configurar custom theme settings via Playwright → playbooks/theme-custom-settings.md
+ghost-selfhost-admin/
+  SKILL.md                              ← this file
+  package.json
+  scripts/
+    ghost-setup.py                      ← Phase 1: initial setup (2FA login + config)
+    ghost-login.sh                      ← Phase 1: shell login alternative
+    ghost-post.sh                       ← Phase 1: post creation via shell session
+    ghost-create-integration.js         ← Phase 1→2: create API key via Playwright
+    ghost-admin-client.js               ← Phase 2: API client (read settings, themes, CRUD)
+    ghost-api-check.js                  ← Phase 2: health check
+    ghost-playwright-admin.js           ← Phase 3: browser automation
+  lib/
+    ghost-api.js                        ← Shared: JWT, HTTP, upload, CLI parsing
+    config.sh                           ← Shell: env loading
+    email.sh                            ← Shell: IMAP 2FA extraction
+    http.sh                             ← Shell: HTTP helpers
+  references/
+    ghost-admin-api.md                  ← API reference
 ```
 
-### 3. SEO e Meta Tags
-```
-1. Configurar meta title/description globais via API → PUT /settings/
-2. Configurar OG/Twitter cards por post → PUT /posts/{id}/
-3. Code injection para structured data → playbooks/code-injection.md
-4. Verificar robots.txt e sitemap → GET {GHOST_URL}/robots.txt
-```
+## Rules
 
-### 4. Newsletter e Email Setup
-```
-1. Criar/editar newsletters via API → POST/PUT /newsletters/
-2. Configurar Mailgun/SMTP via Playwright → playbooks/email-config.md
-3. Configurar sender name/email via API → PUT /newsletters/{id}/
-4. Testar envio
-```
-
-### 5. Members e Monetização
-```
-1. Configurar tiers via API → POST/PUT /tiers/
-2. Criar offers via API → POST /offers/
-3. Configurar Portal via Playwright → playbooks/portal-config.md
-4. Gerenciar members via API → POST/PUT/DELETE /members/
-```
-
-### 6. Integrações e Webhooks
-```
-1. Criar integração via Playwright → playbooks/create-integration.md
-2. Configurar webhooks via API → POST /webhooks/
-3. Gerenciar API keys
-```
-
-## Referências
-
-- Para detalhes da Ghost Admin API → `references/ghost-admin-api.md`
-- Para scripts de automação Playwright → `references/playwright-recipes.md`
-- Para JWT token generation → `references/jwt-auth.md`
-- Para troubleshooting comum → `references/troubleshooting.md`
-
-## Regras de Ouro
-
-1. **API primeiro, Playwright segundo** — sempre prefira a API quando disponível
-2. **Backup antes de mudanças destrutivas** — exportar content antes de bulk operations
-3. **Validar tema antes de ativar** — usar gscan localmente se possível
-4. **Nunca expor API keys** — usar variáveis de ambiente, nunca hardcode
-5. **Respeitar rate limits** — a Ghost Admin API não documenta limites explícitos, mas evite burst requests
-6. **Testar em staging primeiro** — se disponível, testar mudanças de tema/design em ambiente separado
+1. **API first, Playwright second** — always prefer API when available
+2. **Backup before destructive changes** — export content before bulk operations
+3. **Never expose API keys** — use environment variables, never hardcode
+4. **Validate theme before activating** — use gscan locally if possible
+5. **Respect rate limits** — avoid burst requests

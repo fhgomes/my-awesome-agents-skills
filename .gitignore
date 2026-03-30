@@ -1,0 +1,44 @@
+# Environment variables (SECRETS!)
+.env
+.env.local
+.env.*.local
+.env-*
+
+# Credentials & sensitive data
+credentials.json
+*-credentials.json
+token.json
+session.json
+*.pem
+*.key
+*.p12
+.htpasswd
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

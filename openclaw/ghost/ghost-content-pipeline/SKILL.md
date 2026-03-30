@@ -196,12 +196,19 @@ Ver `references/post-template.md` para o template completo. Resumo:
 </ul>
 ```
 
+## Shared Library
+
+Content ops scripts import JWT/HTTP utilities from the selfhost-admin shared lib:
+```
+require('../../ghost-selfhost-admin/lib/ghost-api')
+```
+
 ## Referências
 
 - Template de post otimizado → `references/post-template.md`
 - Regras de melhoria de conteúdo → `references/improvement-rules.md`
 - Configuração de cron jobs → `references/cron-setup.md`
-- Estratégias de indexação → `references/indexing-strategies.md`
+- Ghost Admin API reference → `../ghost-selfhost-admin/references/ghost-admin-api.md`
 
 ## Integração com Celebrity Dev Agent Team
 

@@ -1,182 +1,86 @@
-# Ghost Blog Automation Suite
+# Ghost CMS Automation Suite
 
-Complete automation toolkit for Ghost CMS management via CLI.
+Tools for automating a self-hosted Ghost CMS instance — from initial setup to ongoing
+content publishing and admin operations.
 
-**Status:** ✅ Production Ready  
-**Version:** 1.0.0  
-**Author:** Captain (CelebDev)  
-**Date:** 2026-03-30
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
+## Quick Start
 
 ```bash
-pip install requests python-dotenv
+# 1. Copy and fill your credentials
+cp .env.example .env
+nano .env
+
+# 2. Initial setup (first time — login with 2FA + configure site)
+cd ghost-selfhost-admin
+python3 scripts/ghost-setup.py --env /path/to/.env
+
+# 3. Create Admin API key (via Playwright or Ghost UI)
+node scripts/ghost-create-integration.js --env=/path/to/.env
+#    Or manually: Settings > Integrations > Add Custom Integration
+#    Copy id:secret → add to .env as GHOST_ADMIN_API_KEY=id:secret
+
+# 4. Verify connection
+node scripts/ghost-api-check.js
+
+# 5. Manage your Ghost via API
+node scripts/ghost-admin-client.js settings get
+node scripts/ghost-admin-client.js settings update --json='{"title":"My Blog"}'
 ```
 
-### Setup
-
-1. Create `.env` file with your Ghost credentials:
-
-```bash
-cat > .env << 'EOF'
-GHOST_URL=https://your-blog.com
-GHOST_ADMIN=your@email.com
-GHOST_USER=your@email.com
-GHOST_PASSWORD=your_ghost_password
-GHOST_GMAIL_USER=your@gmail.com
-GHOST_GMAIL_PASSWORD=your_16char_app_password
-EOF
-```
-
-2. Run a script:
-
-```bash
-python3 ghost-setup-complete.py --env .env
-```
-
----
-
-## 📋 Scripts
-
-### 1. **ghost-sprint1-full.py** ⭐ MAIN
-Complete blog customization in one command:
-- Login with 2FA (extracts code from Gmail automatically)
-- Upload logo
-- Apply custom CSS (colors + fonts)
-- Set navigation menu
-- Set social links
-
-```bash
-python3 ghost-sprint1-full.py --env .env --logo /path/to/logo.png
-```
-
-### 2. **ghost-setup-complete.py**
-Automatic setup (login + core settings):
-```bash
-python3 ghost-setup-complete.py --env .env
-```
-
-### 3. **ghost-setup-api.py**
-Manual 2FA code entry (useful if automatic extraction fails):
-```bash
-python3 ghost-setup-api.py --env .env --show-2fa-input
-```
-
-### 4. **ghost-login.sh**
-Shell-based login with IMAP:
-```bash
-./ghost-login.sh /path/to/.env
-```
-
-### 5. **ghost-post.sh**
-Create and publish posts:
-```bash
-./ghost-post.sh --title "My Post" --body "Content here" --publish
-```
-
----
-
-## 📚 Documentation
-
-See **PRODUCTION_READY.md** for:
-- Detailed usage
-- Troubleshooting
-- Cron job setup
-- Maintenance guide
-- 2FA workflow explanation
-
----
-
-## 🔐 Security Notes
-
-✅ **Safe:**
-- All credentials loaded from `.env` (never hardcoded)
-- 2FA codes extracted automatically via IMAP
-- Session tokens managed securely
-- No passwords logged to console
-
-⚠️ **IMPORTANT:**
-- **Never commit `.env` file to git**
-- **Never share `.env` file**
-- Treat `.env` as highly sensitive
-- Rotate credentials regularly (especially Gmail app password)
-
----
-
-## 🛠️ For Developers
-
-### Code Structure
+## Structure
 
 ```
-ghost-setup-complete.py
-├── GhostSetup class
-│   ├── extract_2fa_code()      ← IMAP → Gmail → regex
-│   ├── login()                 ← POST /session + PUT /session/verify
-│   ├── update_settings()       ← PUT /settings
-│   └── is_logged_in()          ← GET /users/me
-│
-└── main()
-    ├── load_env()
-    ├── validate()
-    └── run setup
+ghost/
+  .env.example                         ← credential template
+  ghost-selfhost-admin/                ← admin & setup skill
+    scripts/
+      ghost-setup.py                   ← initial setup (2FA login + config)
+      ghost-create-integration.js      ← create API key via Playwright
+      ghost-admin-client.js            ← API client (read settings, CRUD, themes)
+      ghost-api-check.js               ← health check
+      ghost-playwright-admin.js        ← browser automation (UI-only ops)
+      ghost-login.sh                   ← shell login
+      ghost-post.sh                    ← shell post creation
+    lib/
+      ghost-api.js                     ← shared JWT/HTTP (used by all JS scripts)
+      config.sh, email.sh, http.sh     ← shell libraries
+    references/
+      ghost-admin-api.md               ← API reference
+
+  ghost-content-pipeline/              ← content publishing skill
+    scripts/
+      ghost-content-ops.js             ← content CRUD, search, bulk-tag, export
+      submit-indexing.js               ← Google/IndexNow indexing
+    references/
+      post-template.md                 ← SEO-optimized post template
+      improvement-rules.md             ← content improver rules
+      cron-setup.md                    ← scheduling guide
 ```
 
-### Extending
+## Two Skills
 
-To add new features (e.g., upload images):
+### ghost-selfhost-admin
+Full Ghost administration: initial setup (2FA), settings, themes, images, navigation,
+code injection, and Playwright for UI-only operations.
 
-```python
-class GhostSetup:
-    def upload_image(self, image_path):
-        """Custom method"""
-        with open(image_path, 'rb') as f:
-            files = {'file': f}
-            resp = self.session.post(
-                f"{self.ghost_url}/ghost/api/admin/images/upload/",
-                files=files,
-                headers={"Accept-Version": "v5.0"}
-            )
-        return resp.status_code == 200
-```
+→ See `ghost-selfhost-admin/SKILL.md`
 
----
+### ghost-content-pipeline
+Content publishing automation: create/update posts, SEO optimization, bulk tagging,
+export, search indexing (Google/IndexNow).
 
-## 🆘 Troubleshooting
+→ See `ghost-content-pipeline/SKILL.md`
 
-### "429 Too Many Requests"
-- Ghost rate-limiting API calls
-- Solution: Wait 30+ seconds before running script again
-- Or: Use manual login via browser
+## Authentication Methods
 
-### "No 6-digit code found"
-- Gmail app password incorrect
-- Check: `GHOST_GMAIL_PASSWORD` is 16 char app password (not main password)
-- Solution: Generate new app password at https://myaccount.google.com/apppasswords
+| Method | When | Scripts |
+|--------|------|---------|
+| Session (email+password+2FA) | Initial setup, before API key | `ghost-setup.py`, `ghost-login.sh` |
+| JWT (Admin API key) | Ongoing admin & content ops | All `.js` scripts |
+| Playwright (browser) | UI-only settings | `ghost-playwright-admin.js` |
 
-### ".env not found"
-- Create it in current directory or use `--env /path/to/.env`
-- Template included in this README
+## Requirements
 
----
-
-## 📞 Support
-
-For issues, check:
-1. PRODUCTION_READY.md (detailed docs)
-2. Script help: `python3 ghost-setup-complete.py --help`
-3. Ghost API docs: https://ghost.org/docs/admin-api/
-
----
-
-## 📄 License
-
-Part of CelebDev program. Use for your own Ghost blogs.
-
----
-
-**Last Updated:** 2026-03-30  
-**Status:** ✅ Production Ready
+- Python 3 + `requests`, `python-dotenv` (for initial setup)
+- Node.js 18+ (for API scripts — zero npm dependencies)
+- Playwright (optional, for UI-only operations: `npx playwright install chromium`)

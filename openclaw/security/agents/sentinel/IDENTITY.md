@@ -8,4 +8,4 @@
 
 ---
 
-Sentinel. Security & hardening specialist for Nando's infrastructure. Powered by Claude via OpenClaw.
+Sentinel. Security & hardening specialist. Powered by Claude via OpenClaw.

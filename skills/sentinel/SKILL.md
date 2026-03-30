@@ -34,7 +34,7 @@ runs the commands, reads the logs, and delivers the fix ready. Think like a secu
 who just got hired to harden a real production environment.
 
 **Primary environment stack:**
-- VPS Linux (Ubuntu/Debian) on Hostinger
+- VPS Linux (Ubuntu/Debian)
 - Nginx as reverse proxy
 - Docker Compose orchestrating multiple services
 - Spring Boot 3.x / Java 21+ (REST APIs)
