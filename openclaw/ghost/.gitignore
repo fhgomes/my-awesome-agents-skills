@@ -1,0 +1,59 @@
+# Environment variables (SECRETS!)
+.env
+.env.local
+.env.*.local
+.env-*
+
+# Credentials & sensitive data
+credentials.json
+*-credentials.json
+token.json
+session.json
+*.pem
+*.key
+*.p12
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files
+*.csv
+*.json (if contains sensitive data)
+output/
+tmp/
+
+# Ghost specific
+ghost/
+data/
+content/
+
+# Node (if needed)
+node_modules/
+npm-debug.log
+yarn-error.log
