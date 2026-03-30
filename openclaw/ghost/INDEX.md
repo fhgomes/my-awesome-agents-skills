@@ -1,6 +1,6 @@
 # Claude Scripts Reference Library — v2
 
-**Location:** `/home/unando/ghost/references-claude-scripts-v2/`  
+**Location:** `openclaw/ghost/`  
 **Date:** 2026-03-30  
 **Status:** ✅ Reference & Learning Material
 
@@ -66,13 +66,10 @@ Each skill folder has:
 
 ## 🔗 Related Files
 
-**Your custom scripts:**
-- `/home/unando/.openclaw/workspace/runbook/ghost-*.py` — Python automation suite
-- `/home/unando/.openclaw/workspace/runbook/ghost-*.sh` — Shell scripts
-- `/home/unando/.openclaw/workspace/runbook/PRODUCTION_READY.md` — Full docs
-
-**GitHub:**
-- https://github.com/fhgomes/my-awesome-agents-skills → `openclaw/ghost/`
+**Scripts in this directory:**
+- `ghost-*.py` — Python automation suite
+- `ghost-*.sh` — Shell scripts
+- `PRODUCTION_READY.md` — Full docs
 
 ---
 

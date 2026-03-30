@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 
 
 # Custom CSS for branding
-FHGOMES_CSS = """/* ===== FHGOMES BRANDING ===== */
+CUSTOM_CSS = """/* ===== CUSTOM BRANDING ===== */
 
 /* Color Variables */
 :root {
@@ -148,7 +148,7 @@ blockquote {
   font-weight: 600;
 }
 
-/* ===== END BRANDING ===== */"""
+/* ===== END CUSTOM BRANDING ===== */"""
 
 
 class GhostSprint1:
@@ -359,7 +359,7 @@ class GhostSprint1:
         print("[4/7] Setting publication info...")
         
         settings = [
-            {"key": "title", "value": "Fernando Gomes"},
+            {"key": "title", "value": "Your Blog Title"},
             {"key": "description", "value": "Carreira técnica de verdade. FinTech pragmático. Tudo o que funciona em produção."},
             {"key": "accent_color", "value": "#f1592a"},
             {"key": "lang", "value": "pt"},
@@ -377,7 +377,7 @@ class GhostSprint1:
         """Set custom CSS"""
         print("[5/7] Setting custom CSS (colors + fonts)...")
         
-        settings = [{"key": "codeinjection_styles", "value": FHGOMES_CSS}]
+        settings = [{"key": "codeinjection_styles", "value": CUSTOM_CSS}]
         
         if self.update_settings(settings):
             print("   ✅ Custom CSS applied!")
@@ -470,7 +470,7 @@ class GhostSprint1:
         print(f"  👉 {self.ghost_url}/")
         print()
         print("You should see:")
-        print("  ✅ Title: 'Fernando Gomes'")
+        print("  ✅ Title: 'Your Blog Title'")
         print("  ✅ Logo in header")
         print("  ✅ Orange accent color (#f1592a)")
         print("  ✅ Navigation menu")

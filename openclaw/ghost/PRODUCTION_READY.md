@@ -29,8 +29,8 @@ A complete, **zero-intervention** Ghost blog automation suite:
 ### One-command setup:
 
 ```bash
-cd /home/unando/.openclaw/workspace/runbook
-python3 ghost-setup-complete.py --env /home/unando/ghost/.env
+cd /path/to/your/runbook
+python3 ghost-setup-complete.py --env /path/to/.env
 ```
 
 **What happens:**
@@ -47,22 +47,22 @@ python3 ghost-setup-complete.py --env /home/unando/ghost/.env
 
 ## 📋 Configuration
 
-### .env file: `/home/unando/ghost/.env`
+### .env file: `/path/to/.env`
 
 ```bash
 # Database (unchanged)
-GHOST_DB_PASSWORD=2BfImPBuebznqEkeyzuAKxi8
-MYSQL_ROOT_PASSWORD=AueJD2MQVQCPbH1DLo8BL0TJ
+GHOST_DB_PASSWORD=your_db_password
+MYSQL_ROOT_PASSWORD=your_mysql_root_password
 
 # Ghost Admin
 GHOST_URL=https://your-blog.com
 GHOST_ADMIN=your@email.com
 GHOST_USER=your@email.com
-GHOST_PASSWORD=Ferd0m@1518
+GHOST_PASSWORD=your_ghost_password
 
 # Gmail (for 2FA code extraction)
-GHOST_GMAIL_USER=your@email.com
-GHOST_GMAIL_PASSWORD=yuan ltxz vwek eccw
+GHOST_GMAIL_USER=your@gmail.com
+GHOST_GMAIL_PASSWORD=xxxx xxxx xxxx xxxx
 ```
 
 ---
@@ -98,19 +98,19 @@ GHOST_GMAIL_PASSWORD=yuan ltxz vwek eccw
 ### Daily usage:
 ```bash
 # Just run it
-python3 ghost-setup-complete.py --env /home/unando/ghost/.env
+python3 ghost-setup-complete.py --env /path/to/.env
 ```
 
 ### If password changes:
 ```bash
 # Update .env
-nano /home/unando/ghost/.env
+nano /path/to/.env
 
 # Update GHOST_PASSWORD = new password
 # Update GHOST_GMAIL_PASSWORD = new app password (from Google)
 
 # Run script again
-python3 ghost-setup-complete.py --env /home/unando/ghost/.env
+python3 ghost-setup-complete.py --env /path/to/.env
 ```
 
 ### If Gmail app password expires:
@@ -131,7 +131,7 @@ python3 << 'EOF'
 import imaplib, ssl, re, os
 from dotenv import load_dotenv
 
-load_dotenv('/home/unando/ghost/.env')
+load_dotenv('/path/to/.env')
 mail = imaplib.IMAP4_SSL('imap.gmail.com', 993)
 mail.login(os.getenv('GHOST_GMAIL_USER'), os.getenv('GHOST_GMAIL_PASSWORD'))
 mail.select('INBOX')
@@ -165,18 +165,18 @@ EOF
 
 ### Scenario 1: First-time setup
 ```bash
-python3 ghost-setup-complete.py --env /home/unando/ghost/.env
+python3 ghost-setup-complete.py --env /path/to/.env
 # → Extracts code, logs in, updates title/description ✅
 ```
 
 ### Scenario 2: Update blog title later
 ```bash
-# Edit ghost-setup-complete.py, change "Fernando Gomes" to new title
+# Edit ghost-setup-complete.py, change "Your Blog Title" to new title
 # OR create wrapper script:
 
 cat > /tmp/update-title.py << 'EOF'
 import sys
-sys.path.insert(0, '/home/unando/.openclaw/workspace/runbook')
+sys.path.insert(0, '/path/to/your/runbook')
 from ghost_setup_complete import GhostSetup
 setup = GhostSetup(...)
 setup.login()
@@ -188,15 +188,15 @@ python3 /tmp/update-title.py
 
 ### Scenario 3: Create a post
 ```bash
-cd /home/unando/.openclaw/workspace/runbook
-./ghost-login.sh /home/unando/ghost/.env
+cd /path/to/your/runbook
+./ghost-login.sh /path/to/.env
 ./ghost-post.sh --title "My Post" --body "Content" --publish
 ```
 
 ### Scenario 4: Cron job (daily check)
 ```bash
 # Add to crontab:
-0 6 * * * cd /home/unando/.openclaw/workspace/runbook && python3 ghost-setup-complete.py --env /home/unando/ghost/.env >> /tmp/ghost-setup.log 2>&1
+0 6 * * * cd /path/to/your/runbook && python3 ghost-setup-complete.py --env /path/to/.env >> /tmp/ghost-setup.log 2>&1
 ```
 
 ---
@@ -237,7 +237,7 @@ curl -X POST https://your-blog.com/ghost/api/admin/pages/ \
 ### "No 6-digit code found"
 - Check Gmail inbox manually
 - Verify `GHOST_GMAIL_PASSWORD` is correct (app password, not main password)
-- Try: `gmail_user=$(cat /home/unando/ghost/.env | grep GHOST_GMAIL) && echo "$gmail_user"`
+- Try: `gmail_user=$(cat /path/to/.env | grep GHOST_GMAIL) && echo "$gmail_user"`
 
 ### "403 Verification failed"
 - Code might be wrong or expired (valid for ~10 min)
@@ -249,8 +249,8 @@ curl -X POST https://your-blog.com/ghost/api/admin/pages/ \
 - Restart: `docker restart ghost-blog`
 
 ### ".env not found"
-- Make sure `.env` exists at `/home/unando/ghost/.env`
-- Check: `ls -la /home/unando/ghost/.env`
+- Make sure `.env` exists at `/path/to/.env`
+- Check: `ls -la /path/to/.env`
 
 ---
 
@@ -291,13 +291,13 @@ This automation demonstrates:
 
 ## 📞 Support
 
-**Location:** `/home/unando/.openclaw/workspace/runbook/`
+**Location:** `/path/to/your/runbook/`
 
 **Main script:** `ghost-setup-complete.py`
 
 **Test command:**
 ```bash
-python3 ghost-setup-complete.py --env /home/unando/ghost/.env
+python3 ghost-setup-complete.py --env /path/to/.env
 ```
 
 **Expected output:** ✅ All 4 steps complete

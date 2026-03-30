@@ -218,7 +218,7 @@ class GhostSetup:
         settings = [
             {
                 "key": "title",
-                "value": "Fernando Gomes"
+                "value": "Your Blog Title"
             },
             {
                 "key": "description",
