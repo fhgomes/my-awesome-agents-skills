@@ -45,6 +45,26 @@ Sentinel is a cybersecurity specialist agent focused on:
 
 Full OpenClaw configuration (SOUL.md, TOOLS.md, playbooks) in [openclaw/security/sentinel/](openclaw/security/sentinel/).
 
+## Best Practice Guides
+
+Comprehensive operational guides for OpenClaw deployments — generic, shareable, no infrastructure-specific details.
+
+| Guide | Description |
+|-------|-------------|
+| [Token Economy](openclaw/guides/token-economy.md) | Bootstrap diet, model selection, context pruning, compaction, cost optimization |
+| [Multi-Agent Setup](openclaw/guides/multi-agent-setup.md) | Agent architecture, workspace structure, bindings, permissions, event bus |
+| [Memory Architecture](openclaw/guides/memory-architecture.md) | 2-layer memory system, security rules, maintenance, cross-agent awareness |
+| [Security & Guardrails](openclaw/guides/security-guardrails.md) | Passphrase guard, secrets, prompt injection defense, server hardening |
+| [Providers & Models](openclaw/guides/providers-and-models.md) | Anthropic/OpenAI/Gemini/Ollama auth, model selection, fallbacks, thinking |
+| [Cron & Automation](openclaw/guides/cron-and-automation.md) | Payload types, schedules, delivery, heartbeats, async exec |
+| [Tools & Skills](openclaw/guides/tools-and-skills.md) | Native tools, web search hierarchy, skills system |
+| [Audio & Transcription](openclaw/guides/audio-and-transcription.md) | Whisper setup, TTS providers, transcription organization |
+| [External Integrations](openclaw/guides/external-integrations.md) | Google, Atlassian, Slack, Discord setup and usage |
+| [Media Organization](openclaw/guides/media-organization.md) | Directory structure, naming conventions, backup rules |
+| [Git Backup Strategy](openclaw/guides/git-backup-strategy.md) | What to version, .gitignore, automation, disaster recovery |
+
+Full index: [openclaw/guides/README.md](openclaw/guides/README.md)
+
 ### Good Practices
 
 [`security/good-practices/openclaw-agent-hardening.md`](security/good-practices/openclaw-agent-hardening.md) covers:
