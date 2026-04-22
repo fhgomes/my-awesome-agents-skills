@@ -19,6 +19,7 @@ Community-maintained operational guides for OpenClaw AI agent gateway deployment
 | [External Integrations](external-integrations.md) | Google, Atlassian, Slack, Discord setup and usage |
 | [Media Organization](media-organization.md) | Directory structure, naming conventions, backup rules |
 | [Git Backup Strategy](git-backup-strategy.md) | What to version, .gitignore rules, automation, disaster recovery |
+| [Ollama Setup](ollama-setup.md) | Step-by-step local (Docker) and cloud Ollama provider setup, quick-test agent, rollback |
 
 ## Also in This Repository
 
@@ -27,6 +28,7 @@ Community-maintained operational guides for OpenClaw AI agent gateway deployment
 | [Agent Hardening](../security/good-practices/openclaw-agent-hardening.md) | Inbound message security, config protection, prompt injection defense patterns |
 | [Sentinel Agent](../security/agents/sentinel/) | Complete security specialist agent configuration |
 | [Config Guardian Skill](../../skills/config-guardian/) | Safe OpenClaw config updates with backup/validate/rollback |
+| [OpenClaw Specialist Skill](../../skills/openclaw-specialist/) | End-to-end OpenClaw operations skill — config, cron, channels, upgrades, diagnostics |
 
 ---
 

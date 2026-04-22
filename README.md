@@ -26,6 +26,7 @@ openclaw/        # OpenClaw-specific agent configurations
 |-------|-------------|
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
+| [openclaw-specialist](skills/openclaw-specialist/SKILL.md) | End-to-end OpenClaw ops — config protocol, cron authoring, channels, upgrades, diagnostics |
 
 ## Security
 
@@ -62,6 +63,7 @@ Comprehensive operational guides for OpenClaw deployments — generic, shareable
 | [External Integrations](openclaw/guides/external-integrations.md) | Google, Atlassian, Slack, Discord setup and usage |
 | [Media Organization](openclaw/guides/media-organization.md) | Directory structure, naming conventions, backup rules |
 | [Git Backup Strategy](openclaw/guides/git-backup-strategy.md) | What to version, .gitignore, automation, disaster recovery |
+| [Ollama Setup](openclaw/guides/ollama-setup.md) | Step-by-step local (Docker) and cloud Ollama provider setup with quick-test agent and rollback |
 
 Full index: [openclaw/guides/README.md](openclaw/guides/README.md)
 
