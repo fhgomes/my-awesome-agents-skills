@@ -28,3 +28,5 @@ Drop `SKILL.md` into your agent's skills folder and ask:
 > "cria o harness desse projeto" / "make this repo AI-ready" / "monta o AGENTS.md"
 
 The skill will identify the project, show you the harness plan, interview you about missing definitions, and build the harness sized to your repo.
+
+**Using Claude** (claude.ai, Claude Desktop, or Claude Code)? Prefer the [Claude skill format variant](../../claude/skills/harness-engineer/) — same content, split into `SKILL.md` + on-demand `references/` to save context.

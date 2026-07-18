@@ -10,6 +10,12 @@ skills/          # Universal SKILL.md files — drop-in skills for any OpenClaw 
     SKILL.md     # Skill definition (routing, tools, examples)
     scripts/     # Helper scripts (when needed)
 
+claude/          # Claude-format variants (SKILL.md + references/ loaded on demand)
+  skills/
+    <name>/
+      SKILL.md
+      references/
+
 security/        # Security-focused agents and hardening guides
   sentinel/      # Sentinel agent SKILL.md (security specialist)
   good-practices/ # Hardening guides and best practices
@@ -25,7 +31,7 @@ openclaw/        # OpenClaw-specific agent configurations
 | Skill | Description |
 |-------|-------------|
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
-| [harness-engineer](skills/harness-engineer/SKILL.md) | Identify a repo deeply and harvest its patterns, conventions, and business rules into an AI harness — router AGENTS.md + vendor files + routed guides so any coding agent works with more context and quality |
+| [harness-engineer](skills/harness-engineer/SKILL.md) | Identify a repo deeply and harvest its patterns, conventions, and business rules into an AI harness — router AGENTS.md + vendor files + routed guides so any coding agent works with more context and quality. Also available in [Claude skill format](claude/skills/harness-engineer/) (SKILL.md + on-demand references) |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
 | [openclaw-specialist](skills/openclaw-specialist/SKILL.md) | End-to-end OpenClaw ops — config protocol, cron authoring, channels, upgrades, diagnostics |
 
