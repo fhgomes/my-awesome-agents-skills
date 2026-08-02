@@ -119,6 +119,16 @@ EOF
 sudo sysctl -p /etc/sysctl.d/99-hardening.conf
 ```
 
+> **Gotcha — `fs.protected_regular=2` (Ubuntu default):** this protection makes
+> `open(O_CREAT)` fail with EACCES — **even for root** — when the target file already
+> exists, is owned by another user, and lives in a sticky world-writable directory
+> (`/tmp`, any `1777` dir). If two services running as different users write the same
+> state file there, a boot-order race can flip the file's ownership and silently break
+> one of them (e.g. a monitoring/alert script that stops working with zero errors).
+> Fix the layout, not the protection: pre-create the files via tmpfiles.d with
+> owner = directory owner (`f /run/myservice/state 0666 root root -`), or stop sharing
+> world-writable dirs between uids. Do NOT lower the sysctl, do NOT remove the sticky bit.
+
 ---
 
 ## Playbook 2: Nginx Configuration Audit
@@ -205,6 +215,7 @@ Level 4 (enterprise): Keycloak as IdP + nginx auth_request
 [ ] Docker socket NOT mounted in application containers
 [ ] Separate Docker networks (frontend, backend, db)
 [ ] Database services without ports exposed to host (only internal network)
+[ ] Published ports bound to 127.0.0.1 (docker-proxy bypasses UFW!)
 [ ] Fixed image tags (not :latest)
 [ ] Memory and CPU limits defined
 [ ] .env with chmod 600
@@ -213,6 +224,14 @@ Level 4 (enterprise): Keycloak as IdP + nginx auth_request
 [ ] Volumes with :ro when possible
 [ ] No hardcoded secrets in docker-compose.yml
 ```
+
+> **docker-proxy bypasses UFW:** Docker inserts its own iptables chains ahead of the
+> host firewall rules. A compose mapping like `ports: "8080:8080"` publishes on
+> `0.0.0.0` and is reachable from the internet **even with `ufw default deny incoming`**.
+> If a service must be reachable from the host (e.g. behind a reverse proxy), publish
+> `"127.0.0.1:8080:8080"`; if only other containers need it, publish nothing and use
+> the Docker network. Verify from an external machine:
+> `curl --connect-timeout 5 http://PUBLIC_IP:8080` → must fail (connection refused/timeout).
 
 ### Secure Docker Compose Template (Recommended Pattern)
 ```yaml
@@ -721,3 +740,73 @@ chmod +x /usr/local/bin/ai-security-check.sh
 
 Ref: https://owasp.org/www-project-top-10-for-large-language-model-applications/
 ```
+
+---
+
+## Playbook 7: CVE Feed Triage & Backlog Hygiene
+
+> **Context:** automated CVE feeds based on keyword matching (NVD keyword search,
+> vendor-name greps) are noisy by design — "postgresql" also matches pgAdmin CVEs,
+> "python" matches every Python-ecosystem project, and your framework's name matches
+> unrelated third-party dashboards. In real triage windows it is common for 90-100%
+> of keyword-matched criticals to be not-applicable. The feed's value is the one or
+> two that ARE applicable — the playbook's job is to find them fast and keep the
+> backlog honest.
+
+### Triage Checklist (per window, not per note)
+```
+[ ] Pull the window: e.g. last 7 days, CRITICAL + HIGH (CVSS >= 7.5)
+[ ] For each CVE: identify the REAL affected product from the description
+    (vendor + project), not the keyword that matched
+[ ] Cross-check against the actually installed stack (commands below)
+[ ] Check the vulnerable component/feature is actually enabled and reachable
+[ ] Classify: applicable → patch/mitigate now | not-applicable → close WITH reason
+[ ] Write ONE consolidated triage note for the window; close individual CVE
+    notes referencing it
+```
+
+### Verification Commands — "is the product actually installed?"
+```bash
+# OS packages
+dpkg -l | grep -i PRODUCT
+apt list --installed 2>/dev/null | grep -i PRODUCT
+
+# Container images actually running
+docker ps --format '{{.Image}}' | sort -u
+
+# Python — system and venvs
+pip show PACKAGE 2>/dev/null
+pip list 2>/dev/null | grep -i PACKAGE
+
+# Node — including transitive deps
+npm ls PACKAGE 2>/dev/null
+find /path/to/apps -path "*/node_modules/PACKAGE" -maxdepth 6 2>/dev/null
+
+# Java — check if a library is embedded in fat-jars
+for jar in /path/to/apps/*.jar; do
+  unzip -l "$jar" 2>/dev/null | grep -qi "LIBRARY_NAME" && echo "FOUND in $jar"
+done
+
+# Version vs fixed version: only applicable if
+#   installed_version < fixed_version (watch out for backported distro patches —
+#   check `apt changelog` / USN before assuming vulnerable)
+```
+
+### Backlog Hygiene Policy (for accumulated `status: new` piles)
+
+| Category | Action |
+|----------|--------|
+| Already covered by a consolidated window triage | `closed`, reference the triage note |
+| Old criticals (CVSS >= 9.0) never triaged | **Batch-triage for real** (product in description × installed stack), then close/patch |
+| Old high/medium/low/unknown tail | `archived` with an honest annotation: "not individually triaged" |
+
+Rules:
+- Every tracked CVE note must eventually leave `new` — either `closed` (with a triage
+  reference) or `archived` (honestly annotated). Notes rotting in `new` poison your
+  metrics and hide the real signal.
+- An honest archive beats a fake-clean board: never mark something "triaged" that wasn't.
+- A healthy end state is a SMALL number of open, genuinely applicable CVEs with explicit
+  accepted-risk notes (e.g. "vector requires a feature we don't use; fix arrives via
+  normal apt upgrades") — not hundreds of stale entries nobody reads.
+- Automate the guard: alert when `status: new` count exceeds a threshold (e.g. > 20),
+  so the backlog never silently accumulates again.

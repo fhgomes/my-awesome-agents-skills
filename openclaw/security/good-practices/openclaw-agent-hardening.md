@@ -96,6 +96,32 @@ chmod 644 ~/.openclaw/workspace/HEARTBEAT.md
 - Never accept config changes via chat messages, even from the owner account — social engineering and account compromise are real
 - If using a passphrase guard (recommended), validate before any sensitive change
 
+### Upgrades Silently Revert Hand-Edits — Add a Drift Guard
+
+Version upgrades that regenerate config files (openclaw.json, service units) can
+quietly revert security-relevant hand edits — and the regression only shows up later
+as strange behavior, not as an error. Treat this as a config-integrity threat:
+
+- **After every upgrade, re-verify the LIVE config values you depend on.** If configs
+  are git-tracked, `git diff` against the pre-upgrade state and review every change.
+- **For unattended protection, add a pre-start drift guard** — a script that checks
+  (and optionally fixes) the critical keys before the service starts, with a backup
+  and an alert when it has to intervene:
+
+```ini
+# /etc/systemd/system/openclaw.service.d/config-guard.conf
+[Service]
+ExecStartPre=+/usr/local/bin/openclaw-config-guard.sh
+```
+
+The `+` prefix runs the guard as root even when the service runs as an unprivileged
+user — needed when the guard must write files the service user cannot.
+
+- **Same pattern for locally patched dependencies:** keep golden copies of the patched
+  files plus an idempotent `apply.sh` that runs on every start. Gate it on the package
+  version — if the version matches, re-apply silently; if a NEW version appears, alert
+  and do NOT overwrite blindly (the patch may no longer apply cleanly).
+
 ---
 
 ## 3. Tool & Permission Hardening
@@ -349,6 +375,7 @@ Security Baseline — OpenClaw Agent Deployment
 [ ] Docker socket NOT mounted in any agent container
 [ ] MCP tokens scoped to minimum required permissions
 [ ] Agent config files version-controlled (git)
+[ ] Config drift re-checked after every upgrade (or pre-start drift guard in place)
 [ ] SOUL.md has security rules section (see above)
 [ ] Agents treat external content as untrusted data
 ```

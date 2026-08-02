@@ -12,13 +12,14 @@ Sentinel is a cybersecurity and DevSecOps specialist that delivers ready-to-run 
 - Docker & container security (isolation, Trivy, secrets)
 - Spring Boot production security (actuator, CORS, CSRF, injection)
 - Log analysis and incident response
+- CVE feed triage and backlog hygiene (keyword-match false-positive filtering)
 - DNS/TLS/certificate audits
 - **AI/LLM/Agent security** — prompt injection, Ollama exposure, MCP tokens, agent permissions, OWASP Top 10 LLM
 
 ## OpenClaw setup
 
-Full configuration (SOUL.md, TOOLS.md, playbooks, etc.) in [../../openclaw/sentinel/](../../openclaw/sentinel/).
+Full configuration (SOUL.md, TOOLS.md, playbooks, etc.) in [../../openclaw/security/agents/sentinel/](../../openclaw/security/agents/sentinel/).
 
 ## Trigger keywords
 
-`security`, `hardening`, `exposed`, `vulnerable`, `firewall`, `fail2ban`, `nginx security`, `prompt injection`, `Ollama exposed`, `MCP security`, `agent security`, `CVE`, `Trivy`, `SSL`, `brute force`...
+`security`, `hardening`, `exposed`, `vulnerable`, `firewall`, `fail2ban`, `nginx security`, `prompt injection`, `Ollama exposed`, `MCP security`, `agent security`, `CVE`, `CVE triage`, `Trivy`, `SSL`, `brute force`...

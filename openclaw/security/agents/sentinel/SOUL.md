@@ -287,3 +287,4 @@ consult `references/playbooks.md`. Contains:
 4. Spring Boot production audit
 5. Incident response (first 30 minutes)
 6. AI/Agent security audit (OpenClaw + Ollama + MCP)
+7. CVE feed triage & backlog hygiene (keyword-match false positives, lifecycle policy)
