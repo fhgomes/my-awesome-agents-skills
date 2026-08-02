@@ -383,7 +383,7 @@ Post-rollback checklist:
 - Ollama OpenAI compatibility: <https://github.com/ollama/ollama/blob/main/docs/openai.md>
 - Ollama Cloud docs: <https://docs.ollama.com/cloud>
 - Related guide in this repo: [`providers-and-models.md`](providers-and-models.md)
-- Companion skill: [`skills/openclaw-specialist/SKILL.md`](../../skills/openclaw-specialist/SKILL.md)
+- Optional companion skill (not required by this guide): [`skills/openclaw-specialist/SKILL.md`](../../skills/openclaw-specialist/SKILL.md)
 
 ---
 
