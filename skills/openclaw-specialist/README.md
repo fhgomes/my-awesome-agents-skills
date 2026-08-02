@@ -19,12 +19,14 @@ Guides safe, surgical operations on an OpenClaw instance:
 2. Replace the placeholders at the top of the skill (`<USER>`, `<PORT>`, `<HOME>`, `<UNIT>`) with your own values, or keep them generic and let the agent fill them from context.
 3. Load the skill into an agent — for example, give your "ops" agent a `skills` entry pointing at it, or paste it as reference material in the agent's bootstrap.
 
-## Related guides in this repo
+## See also (optional)
+
+This skill is self-contained — `SKILL.md` alone is enough. If you want to go deeper, this repository also has optional companions (none of them required):
 
 - [`openclaw/guides/ollama-setup.md`](../../openclaw/guides/ollama-setup.md) — add a local or hosted Ollama provider to an OpenClaw instance with a quick-test path and rollback
 - [`openclaw/guides/providers-and-models.md`](../../openclaw/guides/providers-and-models.md) — reference for authenticating Anthropic, OpenAI, Gemini, Ollama
 - [`openclaw/guides/cron-and-automation.md`](../../openclaw/guides/cron-and-automation.md) — deeper dive on cron payloads and schedules
-- [`skills/config-guardian/SKILL.md`](../config-guardian/SKILL.md) — scripted backup/validate/diff/restore helpers referenced by this skill's protocol
+- [`skills/config-guardian/SKILL.md`](../config-guardian/SKILL.md) — a separate skill with scripted backup/validate/diff/restore helpers, if you prefer scripts over the manual protocol in this skill
 
 ## Notes
 

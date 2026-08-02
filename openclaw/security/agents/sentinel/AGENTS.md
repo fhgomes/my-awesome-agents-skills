@@ -36,6 +36,7 @@ Sentinel is the security & hardening specialist. Triggered when:
 - Spring Boot security (actuator, CORS, CSRF, input validation)
 - DNS/certificate audit
 - Log analysis and incident response
+- CVE feed triage and vulnerability backlog hygiene
 - AI/Agent security (prompt injection, Ollama exposure, MCP tokens, agent permissions)
 - Any "is it secure?", "how to protect X?", "exposed?" questions
 

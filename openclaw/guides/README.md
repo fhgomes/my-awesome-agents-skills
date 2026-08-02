@@ -23,6 +23,8 @@ Community-maintained operational guides for OpenClaw AI agent gateway deployment
 
 ## Also in This Repository
 
+Optional companions — every guide above stands alone; nothing below is a prerequisite.
+
 | Resource | Description |
 |----------|-------------|
 | [Agent Hardening](../security/good-practices/openclaw-agent-hardening.md) | Inbound message security, config protection, prompt injection defense patterns |

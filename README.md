@@ -2,12 +2,20 @@
 
 A collection of agent skills and configurations for AI assistants, built for [OpenClaw](https://openclaw.ai).
 
+> **Design principle — every item is self-contained.** You can take just one
+> `skills/<name>/` folder and install it (Claude, OpenClaw, or any runtime that loads
+> a SKILL.md), or just one agent/area under `openclaw/<area>/`, without needing
+> anything from the other trees. Cross-links between items are optional "see also"
+> pointers, never prerequisites. Content is deliberately duplicated between variants
+> when needed — isolation beats DRY here.
+
 ## Structure
 
 ```
-skills/          # Universal SKILL.md files — drop-in skills for any OpenClaw agent
+skills/          # Universal, self-contained skills — each folder works standalone
   <name>/
     SKILL.md     # Skill definition (routing, tools, examples)
+    references/  # Reference material bundled with the skill (when needed)
     scripts/     # Helper scripts (when needed)
 
 claude/          # Claude-format variants (SKILL.md + references/ loaded on demand)
@@ -16,14 +24,12 @@ claude/          # Claude-format variants (SKILL.md + references/ loaded on dema
       SKILL.md
       references/
 
-security/        # Security-focused agents and hardening guides
-  sentinel/      # Sentinel agent SKILL.md (security specialist)
-  good-practices/ # Hardening guides and best practices
-
-openclaw/        # OpenClaw-specific agent configurations
-  <name>/        # General agents
-  security/      # Security agents
-    sentinel/    # Sentinel full config (SOUL.md, TOOLS.md, playbooks)
+openclaw/        # OpenClaw-specific agents, guides, and areas — each self-contained
+  ghost/         # Ghost blog admin + content pipeline
+  guides/        # Best practice guides for OpenClaw deployments
+  security/      # Security agents and hardening guides
+    agents/sentinel/   # Sentinel full agent config (SOUL.md, TOOLS.md, playbooks)
+    good-practices/    # Hardening guides and best practices
 ```
 
 ## Skills
@@ -39,8 +45,8 @@ openclaw/        # OpenClaw-specific agent configurations
 
 | Resource | Description |
 |----------|-------------|
-| [sentinel](security/sentinel/SKILL.md) | Security & DevSecOps specialist agent — hardening, audits, incident response, AI/agent security |
-| [openclaw-agent-hardening](security/good-practices/openclaw-agent-hardening.md) | Practical hardening guide: inbound message security, prompt injection defense, secrets management, allowlisting |
+| [sentinel](skills/sentinel/SKILL.md) | Security & DevSecOps specialist agent — hardening, audits, incident response, AI/agent security, CVE triage |
+| [openclaw-agent-hardening](openclaw/security/good-practices/openclaw-agent-hardening.md) | Practical hardening guide: inbound message security, prompt injection defense, secrets management, allowlisting |
 
 ### Sentinel — Security Agent
 
@@ -50,8 +56,11 @@ Sentinel is a cybersecurity specialist agent focused on:
 - Log analysis and incident response
 - DNS/TLS/certificate audits
 - **AI/LLM/Agent security** — prompt injection, Ollama exposure, MCP token security, OWASP Top 10 LLM
+- CVE feed triage and vulnerability backlog hygiene
 
-Full OpenClaw configuration (SOUL.md, TOOLS.md, playbooks) in [openclaw/security/sentinel/](openclaw/security/sentinel/).
+Two self-contained variants:
+- [skills/sentinel/](skills/sentinel/) — drop-in skill (SKILL.md + bundled playbooks) for any runtime
+- [openclaw/security/agents/sentinel/](openclaw/security/agents/sentinel/) — full OpenClaw agent config (SOUL.md, TOOLS.md, playbooks)
 
 ## Best Practice Guides
 
@@ -76,7 +85,7 @@ Full index: [openclaw/guides/README.md](openclaw/guides/README.md)
 
 ### Good Practices
 
-[`security/good-practices/openclaw-agent-hardening.md`](security/good-practices/openclaw-agent-hardening.md) covers:
+[`openclaw/security/good-practices/openclaw-agent-hardening.md`](openclaw/security/good-practices/openclaw-agent-hardening.md) covers:
 
 - Inbound message security (untrusted data, indirect injection)
 - Config file protection and version control

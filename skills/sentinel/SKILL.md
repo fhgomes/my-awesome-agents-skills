@@ -3,7 +3,8 @@ name: sentinel
 description: >
   Cybersecurity and DevSecOps infrastructure hardening specialist.
   Use ALWAYS when conversation involves: server security, hardening of nginx/SSH/DNS/firewall,
-  API and endpoint protection, vulnerability or CVE analysis, secure Docker/container configuration,
+  API and endpoint protection, vulnerability or CVE analysis, CVE feed triage and backlog hygiene,
+  secure Docker/container configuration,
   database protection (PostgreSQL, Redis), Spring Boot / JVM security,
   SSL/TLS certificates, authentication (Basic Auth, OAuth2, JWT, Keycloak),
   WAF, rate limiting, anti-DDoS, suspicious log analysis, incident response,
@@ -126,6 +127,11 @@ Most common scenario: nginx in front of Spring Boot and other services.
 - Resource limits (mem_limit, cpus)
 - Scan images with Trivy
 - Don't use :latest in production
+- **docker-proxy bypasses UFW:** Docker programs its own iptables chains ahead of
+  the host firewall — a `ports: "8080:8080"` mapping publishes on `0.0.0.0` and is
+  reachable from the internet even with `ufw default deny incoming`. Always publish
+  `"127.0.0.1:8080:8080"` and serve through the reverse proxy. Verify from outside:
+  `curl --connect-timeout 5 http://PUBLIC_IP:8080` must fail
 
 ### D. Spring Boot / JVM Security
 - Spring Security filter chain configured correctly
@@ -321,6 +327,39 @@ When receiving logs to analyze:
 
 ---
 
+## CVE Triage (Feeds & Backlog)
+
+Keyword-matched CVE feeds (NVD keyword search, vendor-name greps) have an extremely
+high false-positive rate: a keyword like "postgresql" or "python" also matches CVEs
+in unrelated third-party projects that merely mention the term. Treat feed output as
+**leads, not findings** — in real triage windows it is common for 90-100% of
+keyword-matched criticals to be not-applicable. The value is in the one or two that are.
+
+**Triage method — always verify the actual product:**
+1. Read the CVE description and identify the REAL affected product (vendor + project),
+   not the keyword that matched
+2. Cross-check against the actually installed stack: package versions (`dpkg -l`,
+   `pip show`, `npm ls`), container images, embedded dependencies (inspect fat-jars,
+   `find` inside `node_modules`)
+3. Verify the vulnerable component or configuration is actually present and reachable
+   (a CVE in a feature you never enabled is usually not-applicable)
+4. Only then classify: applicable → patch or mitigate now; not-applicable → close
+   **with the reason recorded**
+
+**Backlog lifecycle — never let tracked CVEs rot in "new":**
+- Every tracked CVE note must move: `new` → `closed` (with a reference to the triage
+  that covered it) or `archived`
+- Prefer one consolidated triage per window (e.g. last 7 days, criticals + highs)
+  over per-note ceremony — individual notes get closed referencing the window triage
+- For an old accumulated backlog: batch-triage the remaining criticals for real
+  (product in description × installed stack), then archive the high/medium/low tail
+  with an honest annotation that it was NOT individually triaged — an honest archive
+  beats a fake-clean board
+- A healthy end state is a small number of open, genuinely applicable CVEs with an
+  explicit accepted-risk note — not hundreds of stale "new" entries nobody looks at
+
+---
+
 ## Ethics and Limits
 
 - Only help with **defensive** security and **authorized** penetration testing
@@ -341,3 +380,4 @@ When user asks for a "checklist" or "audit", consult the file
 - Spring Boot production audit
 - Incident response (first 30 minutes)
 - AI/Agent security audit
+- CVE feed triage & backlog hygiene
