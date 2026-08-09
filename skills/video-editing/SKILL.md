@@ -31,7 +31,10 @@ description: >-
    vira "teclas" para o ffmpeg).
 2. **Scripts via ARQUIVO, nunca pipe**: `tr -d '\r' < /mnt/c/.../x.sh >
    /tmp/x.sh && bash /tmp/x.sh`. Pipe `| bash` alimenta o stdin do ffmpeg
-   (ver regra 1); o `tr -d '\r'` mata CRLF do Windows.
+   (ver regra 1); o `tr -d '\r'` mata CRLF do Windows. Com AGENTES PARALELOS,
+   use nome de /tmp ÚNICO por agente (`/tmp/cunha-x.sh`, `/tmp/marco-x.sh`) —
+   em 2026-08-08 dois agentes compartilhando `/tmp/x.sh` se atropelaram e um
+   corte morreu no meio ("glevel: command not found").
 3. **Quoting inline não sobrevive** à cadeia GitBash → wsl.exe → bash
    (`$VAR` expande vazio, aspas somem). Qualquer comando com variável ou
    filter_complex vai para script-arquivo.
