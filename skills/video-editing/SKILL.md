@@ -9,9 +9,10 @@ description: >-
   extrair trecho/frame de vídeo, concat de clipes, ou qualquer edição de vídeo
   por linha de comando. Também cobre: specs de entrega por plataforma (bitrate,
   duração máx, safe zone, -14 LUFS), escolher QUAL trecho vira corte (rubrica
-  de hook/coerência/emoção), reenquadre 9:16 seguindo quem fala (face-pan) e
-  detecção da GPU/NVENC desta máquina (scripts/gpu_probe.py — NUNCA hardcode
-  params de placa). Inclui scripts prontos (word_captions.py, face_pan.py,
+  de hook/coerência/emoção), reenquadre 9:16 seguindo quem fala (face-pan),
+  color grading / correção de cor (HLG de iPhone, consistência entre fontes,
+  proteção de tom de pele) e detecção da GPU/NVENC desta máquina
+  (scripts/gpu_probe.py — NUNCA hardcode params de placa). Inclui scripts prontos (word_captions.py, face_pan.py,
   gpu_probe.py) — não reescreva do zero. Para transcrição de palestras/frases
   (SRT longo, TXT), use a skill media-transcription.
 ---
@@ -320,6 +321,25 @@ Os 3 fatos que mais mordem:
    TikTok/IG/Shorts. Para o MESMO arquivo nas três, subir p/ 450.
 3. **Bitrate do Reels é baixo** (4.5M) comparado a Shorts (12M) — mandar 12M
    pro IG só engorda o arquivo, ele reencoda igual.
+
+## Cor: quando (e quando NÃO) gradear
+
+Ver **`references/color-grading.md`** — ordem da chain, receitas medidas e o
+teste de pele.
+
+O resumo que evita erro:
+
+1. **Na maioria dos cortes, não grade.** Footage bem exposto não precisa; grade
+   ruim é pior que nenhum. O caso que pede é **juntar fontes diferentes** no
+   mesmo corte (cold open de um take, corpo de outro).
+2. **Corrigir ≠ gradear.** Branco errado e HLG de iPhone se resolvem com
+   correção (tonemap `hable`), antes e independente de qualquer estética.
+3. **Pele é o juiz.** Medido aqui: o grade quente desvia ≤2,3° em qualquer tom
+   (seguro); o punch desvia até 9,9° em pele clara e joga pele escura pro lado
+   OPOSTO — dois participantes ficam desalinhados entre si. E a vilã é a
+   **curva de contraste**, não a saturação (`saturation=1.3` sozinho desvia
+   ~1,5°). Suavizar a curva corta quase metade do desvio.
+4. `colortemperature` é invertido: **número menor = imagem mais quente**.
 
 ## Dicas de edição p/ Reels (decisões que já tomamos)
 
