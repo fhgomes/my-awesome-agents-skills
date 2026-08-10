@@ -7,17 +7,42 @@ description: >-
   pra Reels/Shorts/TikTok", "9:16", "fundo desfocado", "queima a legenda",
   "burn subtitles", "legenda estilo CapCut / palavra por palavra", "cold open",
   extrair trecho/frame de vídeo, concat de clipes, ou qualquer edição de vídeo
-  por linha de comando. Inclui script pronto de legendas word-level
-  (scripts/word_captions.py) — não reescreva do zero. Para transcrição de
-  palestras/frases (SRT longo, TXT), use a skill media-transcription.
+  por linha de comando. Também cobre: specs de entrega por plataforma (bitrate,
+  duração máx, safe zone, -14 LUFS), escolher QUAL trecho vira corte (rubrica
+  de hook/coerência/emoção), reenquadre 9:16 seguindo quem fala (face-pan) e
+  detecção da GPU/NVENC desta máquina (scripts/gpu_probe.py — NUNCA hardcode
+  params de placa). Inclui scripts prontos (word_captions.py, face_pan.py,
+  gpu_probe.py) — não reescreva do zero. Para transcrição de palestras/frases
+  (SRT longo, TXT), use a skill media-transcription.
 ---
 
 # Edição de vídeo (ffmpeg WSL + legendas word-level GPU)
 
 ## Fatos desta máquina (validados 2026-08-06)
 
-- **ffmpeg SÓ existe no WSL Ubuntu** (4.4.2, instalado via apt). Não há ffmpeg
-  no Windows/Git Bash/scoop/winget. Chame: `wsl.exe -d Ubuntu -- bash -c ...`.
+⚠️ **NUNCA hardcode params de GPU.** Rode `scripts/gpu_probe.py` — a skill roda
+em mais de uma máquina (Fernando: GTX 1650 **SUPER**; esposa: **RTX 5060**) e
+cada uma pede preset/codec diferente. Ver `references/platform-specs.md`.
+
+```bash
+python "C:/Users/ferna/.claude/skills/video-editing/scripts/gpu_probe.py"
+ARGS=$(python .../gpu_probe.py --encode-args --quality high)   # pra script
+```
+
+- **ffmpeg no WSL Ubuntu (4.4.2, CPU-only)** para filtros/concat/extract:
+  `wsl.exe -d Ubuntu -- bash -c ...`.
+- **ffmpeg no WINDOWS com NVENC (instalado 2026-08-09, ordem do Fernando)**:
+  `C:\Users\ferna\Tools\ffmpeg71\ffmpeg-n7.1-latest-win64-gpl-7.1\bin\ffmpeg.exe`
+  (BtbN n7.1). **USE ESTE para encodes/burns longos** — h264_nvenc na 1650 Super
+  a ~8-15x o x264 medium; params validados:
+  `-c:v h264_nvenc -preset p5 -rc vbr -cq 22 -b:v 0` (+ `-bf 3`: a 1650 Super
+  **suporta B-frames em H.264 E HEVC** — confirmado por encode real 2026-08-09,
+  44 B-frames num teste HEVC; a tabela "TU116 não tem B-frame HEVC" está errada).
+  libass acha fontes do sistema sozinho (SEM fontsdir; paths relativos: `cd` na
+  pasta antes).
+  ⚠️ O winget (Gyan.FFmpeg = ffmpeg 8) EXIGE driver NVIDIA ≥610 e o driver
+  atual é 595.97 → "nvenc API 13.1 required" — por isso o build 7.1 pinado.
+  ⚠️ NVENC NÃO existe dentro do WSL2 (GPU-PV só expõe CUDA compute).
 - Python com faster-whisper + CUDA fica no **Windows** (GTX 1650 4 GB) — ver
   skill media-transcription. Transcrição roda no Windows, queima roda no WSL.
 - Paths no WSL: `C:\Users\ferna\Downloads` → `/mnt/c/Users/ferna/Downloads`.
@@ -25,6 +50,19 @@ description: >-
   do WSL (ext4 é mais rápido que /mnt/c) — limpe no fim.
 
 ## Regras de ouro (aprendidas na dor)
+
+0. **ORQUESTRAÇÃO (2026-08-09, custou 2 rodadas de workflow): subagente NUNCA
+   deixa encode em `run_in_background` e retorna "aguardando"** — o processo
+   morre junto com o agente/workflow (seg7 de 794s morreu 2x assim). Padrões
+   que funcionam: (a) encodes longos rodam como background do LOOP PRINCIPAL
+   (sobrevivem entre turnos e notificam); (b) subagente só roda foreground
+   (timeout ≤10 min — quebrar encode longo em metades + concat); (c) detach
+   REAL dentro do WSL: `nohup bash /tmp/x.sh > /tmp/x.log 2>&1 &` + waiter
+   foreground. Subagentes ficam com análise/legendas/QA (trabalho de arquivo).
+   GPU: transcrições SEMPRE sequenciais (4 GB, um whisper por vez); o ffmpeg
+   do WSL é CPU-only (sem NVENC) — máx 2-3 encodes paralelos (dividem cores).
+   Mute de nome: janela com folga ≥0,15s de cada lado e RE-CHECAR volumedetect
+   (fronteira de frame AAC vaza: janela exata deu −37 dB; alargada, −91 dB).
 
 1. **SEMPRE `ffmpeg -nostdin`**. Sem isso, ffmpeg lê o stdin, entra em modo
    interativo e já gerou 305 MB de log de debug numa sessão (o resto do script
@@ -96,6 +134,42 @@ ffmpeg -nostdin -y -loglevel error -i CORTE.mp4 -filter_complex \
 "[0:v]scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080,gblur=sigma=30[bg];[0:v]scale=-2:1080[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,ass=/tmp/li.ass:fontsdir=/mnt/c/Windows/Fonts" \
 -c:v libx264 -crf 18 -preset slow -c:a copy LINKEDIN-SUB.mp4
 ```
+
+## Receita: 9:16 seguindo quem fala (face-pan) — alternativa ao fundo desfocado
+
+Para entrevista/podcast 16:9 com DUAS pessoas e câmera estática: em vez de
+encolher o vídeo no meio do quadro (fundo desfocado), enquadra em tela cheia
+quem está falando, com hard cut. `scripts/face_pan.py` (portado do clipify,
+MIT) — sem OpenCV, sem ML: mede o brilho (`signalstats.YAVG`) de duas ROIs de
+boca/queixo e deduz quem fala pela variação.
+
+```bash
+# 1) extrai frame e VOCÊ olha pra achar as ROIs (regra 4/5: sempre olhe)
+python .../scripts/face_pan.py probe --video IN.mp4 --at 5
+
+# 2) confira as caixas desenhadas (itere no MÁXIMO 2x — é tolerante)
+python .../scripts/face_pan.py probe --video IN.mp4 --at 5 \
+  --left 100,300,500,400 --right 1300,300,500,400
+
+# 3) gera a filter chain
+VF=$(python .../scripts/face_pan.py build --video IN.mp4 \
+      --left 100,300,500,400 --right 1300,300,500,400)
+
+# 4) queima junto com a legenda (1 encode só)
+ffmpeg -nostdin -y -i IN.mp4 -vf "$VF,ass=/tmp/subs.ass:fontsdir=/mnt/c/Windows/Fonts" \
+  -c:v libx264 -crf 18 -preset slow -c:a copy OUT.mp4
+```
+
+Validado 2026-08-09 em vídeo sintético: troca detectada a 3,033s contra
+ground truth de 3,000s (1 frame de erro, da janela de suavização).
+
+- ROI = **boca + queixo**, evitando mãos e microfone (mão gesticulando engana).
+- `--margin 1.15` é a histerese: só troca quando o outro passa 15% do atual —
+  sem isso o corte pisca no silêncio. Suba se ficar instável.
+- `--min-dur 1.0` descarta troca curta demais pra ler na tela.
+- **Só funciona com câmera estática dentro do corte.** Se a câmera se mexe ou
+  tem corte de plano, o método cai — use o fundo desfocado.
+- Uma pessoa só: não precisa disso, `crop` centralizado resolve.
 
 ## Receita: legendas word-level estilo CapCut (automatizado)
 
@@ -232,6 +306,20 @@ no 4.4.2):
 
 ATENÇÃO: NÃO deixe assets em `/tmp` do WSL entre comandos — a distro desliga
 por inatividade e limpa `/tmp` no boot. Use o scratchpad (`/mnt/c/...`).
+
+## Entrega: specs de plataforma (Reels / TikTok / Shorts / LinkedIn)
+
+Ver **`references/platform-specs.md`** — bitrate, duração máx, tamanho de
+arquivo, safe zones e o comando de QA que desenha as guias num frame.
+
+Os 3 fatos que mais mordem:
+
+1. **-14 LUFS em todas.** Se entregar mais alto, a plataforma abaixa e sobra a
+   distorção: `-af loudnorm=I=-14:TP=-1:LRA=11`.
+2. **Safe zone da base.** `MarginV 400` (default do `word_captions.py`) passa em
+   TikTok/IG/Shorts. Para o MESMO arquivo nas três, subir p/ 450.
+3. **Bitrate do Reels é baixo** (4.5M) comparado a Shorts (12M) — mandar 12M
+   pro IG só engorda o arquivo, ele reencoda igual.
 
 ## Dicas de edição p/ Reels (decisões que já tomamos)
 
