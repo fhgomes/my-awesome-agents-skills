@@ -48,7 +48,19 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | Resource | Description |
 |----------|-------------|
 | [sentinel](skills/sentinel/SKILL.md) | Security & DevSecOps specialist agent — hardening, audits, incident response, AI/agent security, CVE triage |
+| [warden](skills/warden/SKILL.md) | Malware & threat analysis — static triage of files, folders, PoCs, URLs and dependencies; layered deobfuscation; incident response. Never executes the sample |
+| [redact](skills/redact/SKILL.md) | Pre-publication privacy audit — secrets, PII/PCI/PHI and internal infra in the working tree **and git history**, with remediation (env vars, `.env.example`, history rewrite, rotation) |
 | [openclaw-agent-hardening](openclaw/security/good-practices/openclaw-agent-hardening.md) | Practical hardening guide: inbound message security, prompt injection defense, secrets management, allowlisting |
+
+### The three security skills — which one to use
+
+They are complementary, each answering a different question:
+
+| Skill | Question it answers |
+|-------|---------------------|
+| [sentinel](skills/sentinel/) | *"How do I protect my server?"* — infrastructure hardening |
+| [warden](skills/warden/) | *"Is this file malicious?"* — malware and threat analysis |
+| [redact](skills/redact/) | *"If I publish this, what leaks?"* — secret and PII exposure |
 
 ### Sentinel — Security Agent
 
