@@ -1,0 +1,33 @@
+{
+  "_comment": "Merge these into package.json -> config.custom of the theme (Ghost allows 20 custom settings total). Values are typed in Ghost Admin > Design & branding > Site-wide; the theme renders them via theme-seo-head.hbs.",
+  "google_site_verification": {
+    "type": "text",
+    "default": "",
+    "group": "site-wide",
+    "description": "SEO: Google Search Console verification code (only the content= value of the HTML tag)"
+  },
+  "bing_site_verification": {
+    "type": "text",
+    "default": "",
+    "group": "site-wide",
+    "description": "SEO: Bing Webmaster Tools verification code (msvalidate.01 content)"
+  },
+  "ga4_measurement_id": {
+    "type": "text",
+    "default": "",
+    "group": "site-wide",
+    "description": "SEO: Google Analytics 4 Measurement ID (G-XXXXXXXXXX). Empty = analytics off. Sets cookies: needs consent banner under GDPR/LGPD"
+  },
+  "facebook_domain_verification": {
+    "type": "text",
+    "default": "",
+    "group": "site-wide",
+    "description": "SEO: Meta (Facebook) domain verification code (facebook-domain-verification content)"
+  },
+  "meta_pixel_id": {
+    "type": "text",
+    "default": "",
+    "group": "site-wide",
+    "description": "SEO: Meta Pixel ID (numeric). Empty = pixel off. Only for sites running Meta Ads; needs consent under GDPR/LGPD"
+  }
+}

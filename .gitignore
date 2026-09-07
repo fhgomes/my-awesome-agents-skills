@@ -42,3 +42,7 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+sa.json
+*-sa.json
+*service-account*.json
+*.iam.gserviceaccount.com*.json

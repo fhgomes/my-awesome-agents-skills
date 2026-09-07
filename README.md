@@ -41,6 +41,8 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | Skill | Description |
 |-------|-------------|
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
+| [ghost-seo-install](skills/ghost-seo-install/SKILL.md) | Ghost CMS SEO without code injection — the theme becomes the "plugin" (Google/Bing/Meta verification, GA4, Pixel as Admin fields), read-only audit script, social cover generator, MySQL fallback for settings the Admin API refuses; backup + prove-on-served-HTML guardrails |
+| [google-seo-data](skills/google-seo-data/SKILL.md) | Search Console + GA4 from the terminal via a service account — verify, add property, share ownership, submit sitemap, top queries/pages, URL inspection, traffic by page/source/country; one-time setup guide and how to read the numbers into a decision |
 | [harness-engineer](skills/harness-engineer/SKILL.md) | Identify a repo deeply and harvest its patterns, conventions, and business rules into an AI harness — router AGENTS.md + vendor files + routed guides so any coding agent works with more context and quality. Also available in [Claude skill format](claude/skills/harness-engineer/) (SKILL.md + on-demand references) |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
 | [openclaw-specialist](skills/openclaw-specialist/SKILL.md) | End-to-end OpenClaw ops — config protocol, cron authoring, channels, upgrades, diagnostics |

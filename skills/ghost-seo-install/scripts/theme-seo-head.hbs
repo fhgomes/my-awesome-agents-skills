@@ -1,0 +1,15 @@
+{{!-- SEO group (Ghost Admin > Design & branding > Site-wide). Paste in default.hbs <head>, BEFORE {{ghost_head}}.
+     Every field is optional: empty field = nothing rendered. Pair with theme-seo-fields.json in package.json.
+     ga4/pixel fire on every page load once the id is set; there is NO consent gating here. Add a consent
+     banner / Google Consent Mode before filling those two fields for GDPR/LGPD audiences. --}}
+{{#if @custom.google_site_verification}}<meta name="google-site-verification" content="{{@custom.google_site_verification}}">{{/if}}
+{{#if @custom.bing_site_verification}}<meta name="msvalidate.01" content="{{@custom.bing_site_verification}}">{{/if}}
+{{#if @custom.facebook_domain_verification}}<meta name="facebook-domain-verification" content="{{@custom.facebook_domain_verification}}">{{/if}}
+{{#if @custom.ga4_measurement_id}}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{@custom.ga4_measurement_id}}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{@custom.ga4_measurement_id}}');</script>
+{{/if}}
+{{#if @custom.meta_pixel_id}}
+<script>!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','{{@custom.meta_pixel_id}}');fbq('track','PageView');</script>
+<noscript><img height="1" width="1" style="display:none" alt="" src="https://www.facebook.com/tr?id={{@custom.meta_pixel_id}}&ev=PageView&noscript=1"></noscript>
+{{/if}}
