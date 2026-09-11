@@ -1,0 +1,161 @@
+{
+  "_meta": {
+    "character": "<nome>",
+    "version": "1.0",
+    "created": "<AAAA-MM-DD>",
+    "purpose": "<mascote de marca | avatar pessoal | personagem de conteúdo>",
+    "rule": "O Character Bible manda. Imagem de referência não é fonte de identidade.",
+    "render_modes": [
+      "<modo canônico>",
+      "<modo alternativo opcional>"
+    ],
+    "supersedes": "<arquivo do Bible anterior, quando esta versao substitui outro canon>"
+  },
+  "personality": {
+    "core": "<uma frase: o que ele e>",
+    "visual_translation": "<como isso vira imagem: postura, gesto, sorriso, olhar. Concreto, nao adjetivo. Sem isto o gerador escorrega em pose de super-heroi e sorriso de propaganda>",
+    "never_in_image": [
+      "<gargalhar de boca aberta>",
+      "<pose de maos na cintura>"
+    ]
+  },
+  "identity_lock": {
+    "age_impression": "<ex.: early 30s, clearly adult>",
+    "gender": "<>",
+    "hair": {
+      "color": "<cor com negações: vivid copper-red, NOT auburn, NOT burgundy>",
+      "length": "<>",
+      "default_style": "<ex.: relaxed low bun>",
+      "allowed_variants": [
+        "<>"
+      ]
+    },
+    "eyes": {
+      "color": "<>",
+      "shape": "<>",
+      "never": [
+        "<>"
+      ],
+      "structure": "<para cor de iris incomum, exigir estrutura humana: fibras radiais, anel limbal mais escuro, pupila preta normal, catchlight. So descrever a cor faz sair disco chapado, que le como lente>"
+    },
+    "skin": {
+      "tone": "<>",
+      "undertone": "<>",
+      "freckles_or_marks": "<none | light on nose and cheeks>"
+    },
+    "face": {
+      "shape": "<>",
+      "nose": "<>",
+      "lips": "<>",
+      "brows": "<>",
+      "signatures": [
+        "<pinta, cicatriz>"
+      ]
+    },
+    "body": {
+      "proportion": "<ex.: 7 to 7.25 heads>",
+      "type": "<>",
+      "limits": "<o que é exagero>"
+    },
+    "tattoos_and_marks": [
+      {
+        "what": "<>",
+        "where": "<lado + ponto exato>",
+        "viewer_side_hint": "<her RIGHT wrist = VIEWER'S LEFT when facing camera>",
+        "shape": "<FORMA do traco: 'um arco, um movimento de caneta so, termina num ponto, nunca Y nem V'. So o lugar nao basta>",
+        "intensity": "<intensidade POR COMPARACAO com algo real: 'igual a uma veia de verdade, so que com o matiz trocado'. Adjetivo abstrato nao converge>",
+        "emits_light": "false — se false, NUNCA usar a palavra 'glow' na descricao: ela vira luz literal",
+        "when_visible": "<sempre | so quando o enquadramento expoe a parte | some sob tal peca de roupa>",
+        "calibration": "<o que ja saiu errado e como foi corrigido, com data>"
+      }
+    ],
+    "signature_accessories": {
+      "mandatory": [
+        "<>"
+      ],
+      "optional": [
+        "<>"
+      ]
+    }
+  },
+  "render_style": {
+    "canonical_mode": "<ex.: polished 2D digital character painting>",
+    "style_to_match_paragraph": "<parágrafo curto em inglês, vai no prompt logo depois de 'Image 1 is attached ONLY as a rendering-style reference'>",
+    "palette": [
+      "<>"
+    ],
+    "temperature": "<warm | cool | neutral>",
+    "saturation": "<high | medium | low>",
+    "lighting_default": "<>",
+    "background_priority": "<subordinate | medium | rich>",
+    "must_not_read_as": [
+      "<photograph>",
+      "<flat vector>",
+      "<heavy comic outlines>"
+    ],
+    "style_reference_images": [
+      "<caminho ou id no Drive da imagem aprovada usada como Image 1>"
+    ]
+  },
+  "wardrobe_system": {
+    "style_direction": "<>",
+    "palette": [
+      "<>"
+    ],
+    "approved_outfits": [
+      {
+        "name": "<>",
+        "top": "<>",
+        "bottom": "<>",
+        "shoes": "<>",
+        "notes": "<>",
+        "covers": "<o que esta peca esconde: monograma, marca no pescoco, antebraco>"
+      }
+    ],
+    "variation_rule": "<varie por CAMADA (paleto, sem paleto, malha, sobretudo), nunca por cor>"
+  },
+  "environment": {
+    "default": "<>",
+    "recurring_elements": [
+      "<>"
+    ],
+    "forbidden": [
+      "<animal>",
+      "<logos>",
+      "<legible text>"
+    ]
+  },
+  "expression_system": {
+    "default_expressions": [
+      "<>"
+    ],
+    "makeup_baseline": "<>",
+    "makeup_variants": [
+      "<>"
+    ],
+    "signature_poses": [
+      "<>"
+    ],
+    "framings": [
+      "<circular avatar>",
+      "<half body>",
+      "<full body>"
+    ]
+  },
+  "consistency_rules": {
+    "must_preserve": [
+      "<>"
+    ],
+    "can_vary": [
+      "<outfit>",
+      "<scene>",
+      "<expression>",
+      "<makeup intensity>"
+    ],
+    "conflict_resolution": "identity_lock > render_style > wardrobe > environment",
+    "promotion": "Quando o usuario aprovar uma imagem que diverge do identity_lock, isso e mudanca de canon: escrever Bible _vN+1 com supersedes, arquivar o anterior, reescrever o bloco canonico e SO ENTAO gerar. Ver secao 6 da SKILL.md."
+  },
+  "negative_prompt": [
+    "<>"
+  ]
+}

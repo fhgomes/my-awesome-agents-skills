@@ -37,6 +37,7 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | Skill | Description |
 |-------|-------------|
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
+| [geracao-visual-consistente](skills/geracao-visual-consistente/SKILL.md) | Consistent AI character/persona generation — Character Bible, canonical references, 6-round interview, file/version conventions, canon promotion, and calibration of subtle identity cues (PT-BR) |
 | [harness-engineer](skills/harness-engineer/SKILL.md) | Identify a repo deeply and harvest its patterns, conventions, and business rules into an AI harness — router AGENTS.md + vendor files + routed guides so any coding agent works with more context and quality. Also available in [Claude skill format](claude/skills/harness-engineer/) (SKILL.md + on-demand references) |
 | [media-transcription](skills/media-transcription/SKILL.md) | Audio/video transcription — faster-whisper large-v3 on GPU (local) or YouTube transcript (remote), with quality/QA playbook (PT-BR) |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
