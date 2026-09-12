@@ -96,14 +96,33 @@ if you cannot find something, ask the user** instead of guessing a path.
    ```bash
    nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv
    ```
-   | Free VRAM | Choice |
-   |---|---|
-   | ≥ 5 GB | `float16` (fastest) |
-   | 2–5 GB | `int8_float16` (~1.9 GB) ← the script tries this first |
-   | < 2 GB | free memory first; otherwise ask about CPU |
+   | Free VRAM | `compute_type` | What it unlocks |
+   |---|---|---|
+   | ≥ 10 GB | `float16` | Batched inference and a bigger `beam_size`; several hours of audio in one job |
+   | 5–10 GB | `float16` | Comfortable large-v3, no tricks needed |
+   | 2–5 GB | `int8_float16` (~1.9 GB) | What the script tries first; ~4x realtime |
+   | < 2 GB | free memory first | Otherwise ask about CPU |
 
    No `nvidia-smi` (Mac/AMD/CPU-only): **ask before falling back to CPU** —
    large-v3 on CPU takes ~2 h+ per hour of audio.
+
+   **The defaults in this skill are tuned for a small card (~4 GB), because that
+   is where the traps live.** On a larger GPU you are leaving speed and quality
+   on the table by keeping them. Worth raising, in this order:
+
+   - `compute_type="float16"` — the single biggest win over `int8_float16`;
+     fewer numerical artifacts on proper nouns and accented speech.
+   - `batched=True` with a `batch_size` (faster-whisper ≥ 1.0, via
+     `BatchedInferencePipeline`) — several times faster on long files; each
+     batched segment needs its own VRAM, so start at 8 and raise while it fits.
+   - `beam_size` 5 → 8–10 — modest accuracy gain for real compute; worth it on
+     hard audio (crosstalk, accents, background noise), not on clean speech.
+   - One job per GPU regardless of size. Two processes on the same card thrash
+     and both crawl, whatever the VRAM.
+
+   Apple Silicon: faster-whisper has no Metal backend. Either run on CPU with
+   `compute_type="int8"` (workable on M-series for short files) or use a
+   MLX-based Whisper port, which is a different tool, not a flag of this one.
 
 3. **ffmpeg/ffprobe** — `which ffmpeg` (or, from Windows into WSL:
    `wsl -e bash -c "which ffmpeg"`). Needed for Step 0.
@@ -145,8 +164,9 @@ Quality (what actually moves the needle):
 - Always `vad_filter=True`, `beam_size=5`, explicit `language`.
 - Accepts `.mp4` directly (PyAV decodes it) — no need to extract a WAV for
   small files (see Step 0 for large ones).
-- Even large-v3 gets proper nouns wrong — recommend a review or run an LLM
-  correction pass.
+- Even large-v3 gets proper nouns wrong, and it spells the wrong guess
+  plausibly — see "The second pass: read it back in context" below. Never hand
+  over a transcript without it.
 - Quick QA: scan the SRT in 30 s windows for repeated bigrams (degeneration) —
   if present, the audio has a bad stretch or the model slipped.
 
@@ -219,8 +239,9 @@ holds everything transcribed so far.
 
    Real case: 9 segments (00:25:01–00:25:10) repeating the same sentence became
    1 correct segment; the recovered speech joined its neighbors perfectly.
-3. **Sample read**: the beginning plus one stretch from the middle; note
-   suspicious terms (wrong proper nouns) as a review to-do for the user.
+3. **Sample read**: the beginning plus one stretch from the middle, to confirm
+   the file is coherent before investing more time. This is a smoke test, not
+   the review — the real one is "The second pass: read it back in context".
 
 ## Synthetic timestamps: correct text, unusable timing
 
@@ -283,6 +304,70 @@ by ear** before they reach an encoder. The script marks which is which.
 
 Cheap prevention on any recording longer than ~20 minutes: run the statistic
 right after transcribing, before anyone plans a cut on those numbers.
+
+## The second pass: read it back in context
+
+The three post-processing passes above are mechanical — they catch echo, loops
+and broken timing. None of them catches the most common defect in a finished
+transcript: **a word the model heard wrong but spelled plausibly.** ASR does not
+mark those as uncertain. They arrive looking exactly like every correct word
+around them, and they survive all the way into a quote or a burned caption
+unless somebody reads the text as text.
+
+Do this pass yourself before handing the files over. It is not optional polish;
+it is where proper nouns get fixed.
+
+**1. Proper nouns come from the END of the recording, not the beginning.**
+
+In an interview the host introduces the guest at the top, fast and often over
+background noise — exactly the conditions where ASR guesses. The guest spells
+their own name near the end, answering "where can people find you?", slowly and
+deliberately. The correct spelling is almost always down there.
+
+Same for the organization: an acronym mangled at minute one is usually said
+clearly later, or appears next to a URL or a handle the speaker reads out.
+
+So: read the last minute first, build the name list, then go back to the top
+and fix every earlier occurrence. Doing it in the other order means propagating
+the wrong spelling.
+
+**2. Let the domain decide between homophones.**
+
+The model picks whichever spelling is more frequent in general text, not in
+*this* conversation. A talk about software design gets "boundary context" where
+the speaker said "bounded context" — the DDD term. A distributed-systems talk
+gets "even driving" for "event-driven". Both are real English; only one exists
+in the domain.
+
+Grep for the terms of art you expect from the subject. When something reads
+slightly off in a technical sentence, it usually is.
+
+**3. Numbers, versions and units are worth a targeted check.**
+
+They are short, unstressed and easy to mishear, and an error in one changes the
+meaning of the sentence instead of just looking odd. Scan every digit against
+what the sentence is claiming.
+
+**4. Decide per item: fix, flag, or leave.**
+
+- **Fix** what the context proves: a name the speaker spells later, a term of
+  art, a version number that contradicts the sentence.
+- **Flag** what you cannot prove, and hand the list to the user with the
+  timestamp. A guessed spelling in a published quote is worse than a question.
+- **Leave** disfluency alone. Repeated words, false starts and filler are how
+  the person spoke; cleaning them turns a transcript into a paraphrase. Only
+  strip them when producing a quote for publication, and say that you did.
+
+**5. Apply every correction to the SRT and the TXT.**
+
+They are generated separately, so a fix in one leaves the other wrong — and the
+SRT is what gets burned into video. Change both, keep a `.bak`, and re-run the
+degeneration grep afterwards to confirm nothing was broken by the edit.
+
+Handing this pass to a second model works well (it is reading, not guessing at
+audio), but give it the domain and the name list, and require it to return a
+diff rather than a rewritten file. A model asked to "improve" a transcript will
+silently smooth the speech, which is the one thing this pass must not do.
 
 ## Partitioned recordings (several videos of the same session)
 
