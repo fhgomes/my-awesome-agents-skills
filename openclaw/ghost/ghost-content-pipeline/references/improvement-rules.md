@@ -1,77 +1,77 @@
-# Regras de Melhoria de Conteúdo (Content Improver)
+# Content Improvement Rules (Content Improver)
 
-## Princípio Central
+## Core Principle
 
-Melhorar posts existentes SEM quebrar o que já funciona. 
-Nunca mudar a URL/slug. Nunca remover conteúdo que ranqueie bem.
-Sempre ADICIONAR valor — nunca subtrair.
+Improve existing posts WITHOUT breaking what already works.
+Never change the URL/slug. Never remove content that ranks well.
+Always ADD value — never subtract.
 
-## Checklist de Análise (antes de melhorar)
+## Analysis Checklist (before improving)
 
-1. **Word count** — Se < 800 palavras, expandir significativamente
-2. **Estrutura de H2s** — Existem H2s? São perguntas reais?
-3. **FAQ section** — Existe? Usa dados PAA reais?
-4. **Feature image** — Existe? Está otimizada (WebP, < 200KB)?
-5. **Meta description** — Existe? É atraente? Tem CTA?
-6. **Custom excerpt** — Existe? É diferente da meta description?
-7. **Internal links** — Quantos? Mínimo 2.
-8. **Tabelas** — Tem comparações que beneficiariam de tabela?
-9. **Alt text** — Todas imagens têm alt descritivo?
-10. **Answer capsule** — Tem resposta rápida no topo?
+1. **Word count** — If < 800 words, expand significantly
+2. **H2 structure** — Are there H2s? Are they real questions?
+3. **FAQ section** — Does it exist? Does it use real PAA data?
+4. **Feature image** — Does it exist? Is it optimized (WebP, < 200KB)?
+5. **Meta description** — Does it exist? Is it compelling? Does it have a CTA?
+6. **Custom excerpt** — Does it exist? Is it different from the meta description?
+7. **Internal links** — How many? Minimum 2.
+8. **Tables** — Are there comparisons that would benefit from a table?
+9. **Alt text** — Do all images have descriptive alt text?
+10. **Answer capsule** — Is there a quick answer at the top?
 
-## Regras de Melhoria
+## Improvement Rules
 
-### DO (Fazer)
-- Adicionar answer capsule se não existir
-- Converter H2s genéricos em perguntas reais
-- Adicionar FAQ com 5-10 perguntas do Google PAA (dados reais, via Serper)
-- Adicionar tabela comparativa quando o tópico permitir
-- Adicionar internal links para posts relacionados
-- Expandir parágrafos curtos com mais contexto
-- Adicionar dados/estatísticas quando disponíveis
-- Melhorar meta description com CTA
-- Gerar novas imagens se as atuais forem de baixa qualidade
-- Adicionar structured data markup se apropriado
+### DO
+- Add an answer capsule if there is none
+- Convert generic H2s into real questions
+- Add an FAQ with 5-10 Google PAA questions (real data, via Serper)
+- Add a comparison table when the topic allows
+- Add internal links to related posts
+- Expand short paragraphs with more context
+- Add data/statistics when available
+- Improve the meta description with a CTA
+- Generate new images if the current ones are low quality
+- Add structured data markup where appropriate
 
-### DON'T (Não fazer)
-- Nunca mudar o slug/URL
-- Nunca remover conteúdo que possa estar ranqueando
-- Nunca mudar o tom/voz drasticamente
-- Nunca inventar FAQs — usar dados reais do Google
-- Nunca adicionar keywords de forma forçada (keyword stuffing)
-- Nunca remover internal links existentes
-- Nunca mudar o autor
-- Nunca resetar a data de publicação original
-- Nunca usar imagens genéricas de stock sem contexto
+### DON'T
+- Never change the slug/URL
+- Never remove content that may be ranking
+- Never change the tone/voice drastically
+- Never invent FAQs — use real Google data
+- Never force keywords in (keyword stuffing)
+- Never remove existing internal links
+- Never change the author
+- Never reset the original publication date
+- Never use generic stock images without context
 
-## Ordem de Prioridade
+## Priority Order
 
-1. **Alta prioridade**: Meta description vazia, sem FAQ, sem answer capsule
-2. **Média prioridade**: Poucos internal links, sem tabelas, < 1000 palavras
-3. **Baixa prioridade**: Melhorar H2s, adicionar mais imagens, expandir seções
+1. **High priority**: Empty meta description, no FAQ, no answer capsule
+2. **Medium priority**: Few internal links, no tables, < 1000 words
+3. **Low priority**: Improve H2s, add more images, expand sections
 
-## Critérios de Seleção (qual post melhorar primeiro)
+## Selection Criteria (which post to improve first)
 
-Para cron job de content improver, selecionar posts por:
+For the content improver cron job, select posts by:
 
 ```
-ORDER BY updated_at ASC  → Post mais antigo sem update
+ORDER BY updated_at ASC  → Oldest post without an update
 ```
 
-Isso garante que todos os posts recebem atenção ao longo do tempo.
+This guarantees every post gets attention over time.
 
-Alternativas:
-- Posts com mais tráfego mas sem FAQ → maior impacto
-- Posts com meta_description vazia → quick win
-- Posts com < 800 palavras → maior potencial de melhoria
+Alternatives:
+- Posts with the most traffic but no FAQ → biggest impact
+- Posts with an empty meta_description → quick win
+- Posts with < 800 words → biggest improvement potential
 
-## Validação Pós-Melhoria
+## Post-Improvement Validation
 
-Após melhorar o post, verificar:
+After improving the post, verify:
 
-1. HTML é válido (não quebrou nada)
-2. Links internos apontam para posts que existem
-3. Imagens carregam corretamente
-4. Meta description tem < 155 chars
-5. Título tem < 60 chars
-6. Post renderiza corretamente no Ghost
+1. The HTML is valid (nothing broke)
+2. Internal links point to posts that exist
+3. Images load correctly
+4. Meta description is < 155 chars
+5. Title is < 60 chars
+6. The post renders correctly in Ghost

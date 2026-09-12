@@ -1,62 +1,61 @@
-# Specs de entrega por plataforma (Reels / TikTok / Shorts / LinkedIn)
+# Delivery specs per platform (Reels / TikTok / Shorts / LinkedIn)
 
-Adaptado de `claude-shorts` (MIT, AgriciDaniel) + validacao local 2026-08-09.
-Params de encode NAO estao hardcoded aqui: rode `scripts/gpu_probe.py` e use
-o que ele devolver — a 1650 Super (Fernando) e a RTX 5060 (esposa) pedem
-presets diferentes.
+Adapted from `claude-shorts` (MIT, AgriciDaniel) + local validation 2026-08-09.
+Encode params are NOT hardcoded here: run `scripts/gpu_probe.py` and use
+what it returns — different cards want different presets and codecs.
 
-## Tabela de encode
+## Encode table
 
-Todos: **1080x1920, 9:16, H.264 High@4.2, yuv420p, `-movflags +faststart`**.
+All of them: **1080x1920, 9:16, H.264 High@4.2, yuv420p, `-movflags +faststart`**.
 
 | | YouTube Shorts | TikTok | Instagram Reels |
 |---|---|---|---|
-| Duracao max | 60s (3min em 2025+) | 60s (10min c/ conta) | 90s (3min em 2025+) |
-| Bitrate video | 12M alvo / 14M max | CRF 18, max 10M | 4.5M alvo / 5M max |
+| Max duration | 60s (3 min in 2025+) | 60s (10 min with account) | 90s (3 min in 2025+) |
+| Video bitrate | 12M target / 14M max | CRF 18, max 10M | 4.5M target / 5M max |
 | Bufsize | 24M | 20M | 10M |
 | Audio | AAC 192k / 48kHz | AAC 128k / 44.1kHz | AAC 128k / 44.1kHz |
-| Tamanho max | 256 MB | 287 MB | 250 MB |
+| Max size | 256 MB | 287 MB | 250 MB |
 
-LinkedIn: preferir **1:1 (1080x1080)** — o feed desktop corta previa de 9:16
-(ja e a decisao registrada na SKILL.md). Max 10min / 5 GB.
+LinkedIn: prefer **1:1 (1080x1080)** — the desktop feed crops the 9:16
+preview (already the recorded decision in SKILL.md). Max 10 min / 5 GB.
 
-## Loudness: -14 LUFS em TODAS
+## Loudness: -14 LUFS EVERYWHERE
 
-Todas as plataformas normalizam pra ~-14 LUFS. Se voce entregar mais alto,
-ELAS abaixam (e sobra so a distorcao). Normalize antes:
+Every platform normalizes to ~-14 LUFS. If you deliver louder, THEY turn it
+down (and only the distortion remains). Normalize first:
 
 ```
 -af loudnorm=I=-14:TP=-1:LRA=11
 ```
 
-- `I=-14` alvo integrado · `TP=-1` true peak (headroom anti-clip) · `LRA=11` faixa dinamica
+- `I=-14` integrated target · `TP=-1` true peak (anti-clip headroom) · `LRA=11` loudness range
 
-Para entrega seria, `loudnorm` de **2 passadas** (a de 1 passada erra ~1 LU):
-medir com `-af loudnorm=I=-14:TP=-1:LRA=11:print_format=json -f null -`,
-depois realimentar `measured_I/measured_TP/measured_LRA/measured_thresh`.
+For serious delivery, use **2-pass** `loudnorm` (the 1-pass version is off by
+~1 LU): measure with `-af loudnorm=I=-14:TP=-1:LRA=11:print_format=json -f null -`,
+then feed back `measured_I/measured_TP/measured_LRA/measured_thresh`.
 
-## Safe zones (onde a UI da plataforma cobre o video)
+## Safe zones (where the platform UI covers the video)
 
-⚠️ **Nenhuma plataforma publica specs oficiais de pixel.** Os numeros abaixo
-sao mediana de 10+ medicoes da comunidade a 1080x1920 e a margem de baixo
-varia com o tamanho da legenda/descricao. Trate como ponto de partida e
-CONFIRA com frame real antes de entregar campanha.
+⚠️ **No platform publishes official pixel specs.** The numbers below are the
+median of 10+ community measurements at 1080x1920, and the bottom margin
+varies with the caption/description size. Treat them as a starting point and
+CHECK against a real frame before delivering a campaign.
 
-| Zona | TikTok | YT Shorts | IG Reels | Universal |
+| Zone | TikTok | YT Shorts | IG Reels | Universal |
 |---|---|---|---|---|
-| Topo | 150px | 150px | 210px | 210px |
-| Base | 320px | 350px | 340px | 450px |
-| Esquerda | 60px | 60px | 40px | 60px |
-| Direita | 120px | 150px | 100px | 150px |
+| Top | 150px | 150px | 210px | 210px |
+| Bottom | 320px | 350px | 340px | 450px |
+| Left | 60px | 60px | 40px | 60px |
+| Right | 120px | 150px | 100px | 150px |
 
-**Legenda word-level**: `MarginV 400` (o default do `word_captions.py`) passa
-em TikTok (320) e IG (340) e cobre YT Shorts (350). Para post cross-platform
-sem retrabalho, **450px+** e o seguro. O valor 400 atual esta correto para o
-uso de hoje — so suba se for postar o MESMO arquivo nas tres.
+**Word-level captions**: `MarginV 400` (the `word_captions.py` default) clears
+TikTok (320) and IG (340) and covers YT Shorts (350). For a cross-platform post
+with no rework, **450px+** is the safe bet. The current value of 400 is correct
+for today's use — only raise it if you post the SAME file to all three.
 
-## Verificar safe zone sem adivinhar
+## Verifying the safe zone without guessing
 
-Desenhe as guias num frame e OLHE (regra 5 da SKILL.md — QA visual sempre):
+Draw the guides on a frame and LOOK (rule 5 of SKILL.md — visual QA, always):
 
 ```bash
 ffmpeg -nostdin -y -ss 3 -i IN.mp4 -frames:v 1 -vf \
@@ -66,12 +65,12 @@ drawbox=x=0:y=0:w=60:h=1920:color=orange@0.3:t=fill,\
 drawbox=x=930:y=0:w=150:h=1920:color=orange@0.3:t=fill" /tmp/safezone.jpg
 ```
 
-Nada essencial (rosto, legenda, logo) pode cair nas areas pintadas.
+Nothing essential (face, caption, logo) may fall inside the painted areas.
 
-## Encode final: use o probe
+## Final encode: use the probe
 
 ```bash
-# params certos pra ESTA maquina
+# the right params for THIS machine
 ARGS=$(python "$SKILL/scripts/gpu_probe.py" --encode-args --quality high)
 
 ffmpeg -nostdin -y -i IN.mp4 $ARGS \
@@ -80,21 +79,21 @@ ffmpeg -nostdin -y -i IN.mp4 $ARGS \
   -movflags +faststart OUT.mp4
 ```
 
-Bitrate por plataforma (quando quiser bater a tabela em vez de CRF/CQ):
-troque `-cq N -b:v 0` por `-b:v 4500k -maxrate 5000k -bufsize 10M` (Reels),
+Per-platform bitrate (when you want to hit the table instead of CRF/CQ):
+swap `-cq N -b:v 0` for `-b:v 4500k -maxrate 5000k -bufsize 10M` (Reels),
 `-b:v 12M -maxrate 14M -bufsize 24M` (Shorts).
 
-## Notas de hardware (medidas aqui, 2026-08-09)
+## Hardware notes (measured 2026-08-09)
 
-- **GTX 1650 SUPER** (TU116, 4 GB, driver 595.97): h264_nvenc + hevc_nvenc,
-  **B-frames OK nos dois** (confirmado por encode real: 44 B-frames num teste
-  HEVC — a tabela "TU116 nao tem B-frame em HEVC" que circula por ai esta
-  errada pra este chip). Sem AV1. Max ~3 encodes em paralelo. `-preset p5`.
-  ⚠️ NVENC **nao existe dentro do WSL2** — encode NVENC roda no ffmpeg do
-  Windows; o WSL fica com filtro/concat/libass em CPU.
-- **RTX 5060** (Blackwell, maquina da esposa): NVENC 9a geracao, **AV1** e
-  4:2:2, `-preset p6` com folga, mais sessoes simultaneas. Nao assuma —
-  rode o probe la tambem; `--codec av1` so vale a pena se o destino aceitar
-  (YouTube aceita AV1; TikTok/IG: manter H.264).
-- Sem NVIDIA (ou codec ausente): o probe cai sozinho pra libx264/libx265/
-  libsvtav1 em CPU.
+- **Example: a GTX 1650 SUPER** (TU116, 4 GB): h264_nvenc + hevc_nvenc,
+  **B-frames OK on both** (confirmed by a real encode: 44 B-frames in an HEVC
+  test — the "TU116 has no B-frames in HEVC" table that circulates online is
+  wrong for this chip). No AV1. Max ~3 parallel encodes. `-preset p5`.
+  ⚠️ NVENC **does not exist inside WSL2** — NVENC encodes run on the Windows
+  ffmpeg; WSL handles filters/concat/libass on the CPU.
+- **Example: an RTX 5060** (Blackwell) on another machine: 9th-gen NVENC,
+  **AV1** and 4:2:2, `-preset p6` with headroom, more simultaneous sessions.
+  Don't assume — run the probe there too; `--codec av1` is only worth it if the
+  destination accepts it (YouTube accepts AV1; TikTok/IG: stay on H.264).
+- No NVIDIA (or codec missing): the probe falls back on its own to
+  libx264/libx265/libsvtav1 on the CPU.

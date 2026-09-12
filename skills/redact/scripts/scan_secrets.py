@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-scan_secrets.py - Auditoria de exposicao PRE-PUBLICACAO de repositorio.
+scan_secrets.py - PRE-PUBLICATION exposure audit of a repository.
 
-Varre working tree e (com --history) o historico do git procurando:
-  - segredos: API keys, tokens, senhas, chaves privadas, connection strings
-  - dados pessoais: PII (CPF/CNPJ/RG/telefone/email), PCI (cartao, via Luhn), PHI
-  - infra interna: IP privado, hostname interno, caminho revelando usuario
-  - arquivos que nao deveriam estar versionados
+Scans the working tree and (with --history) the git history looking for:
+  - secrets: API keys, tokens, passwords, private keys, connection strings
+  - personal data: PII (CPF/CNPJ/RG/phone/email), PCI (cards, via Luhn), PHI
+  - internal infra: private IPs, internal hostnames, paths revealing a username
+  - files that should never be versioned
 
-Nao envia nada pra lugar nenhum. Segredos aparecem MASCARADOS na saida.
+Sends nothing anywhere. Secrets are printed MASKED in the output.
 
-Uso:
+Usage:
     python3 scan_secrets.py <repo>
-    python3 scan_secrets.py <repo> --history          # inclui historico do git
+    python3 scan_secrets.py <repo> --history          # include git history
     python3 scan_secrets.py <repo> --json
-    python3 scan_secrets.py <repo> --severity high    # so high/critical
-    python3 scan_secrets.py <repo> --no-pii           # so segredos
+    python3 scan_secrets.py <repo> --severity high    # only high/critical
+    python3 scan_secrets.py <repo> --no-pii           # secrets only
 """
 
 from __future__ import annotations
@@ -44,38 +44,38 @@ SKIP_EXT = {
     ".dll", ".exe", ".jar", ".wasm", ".min.js", ".map",
 }
 
-# Arquivos que ja sao um achado pelo simples fato de existirem versionados
+# Files that are a finding by the mere fact of being versioned
 DANGEROUS_FILES = [
     (r"(^|/)\.env(\.(local|dev|development|prod|production|staging|test))?$", "critical",
-     "Arquivo .env versionado - normalmente contem todas as credenciais"),
-    (r"(^|/)id_(rsa|dsa|ecdsa|ed25519)$", "critical", "Chave SSH privada"),
-    (r"\.(pem|key|p12|pfx|jks|keystore|ppk)$", "critical", "Arquivo de chave/certificado privado"),
-    (r"(^|/)\.pgpass$|(^|/)\.netrc$|(^|/)\.my\.cnf$", "critical", "Arquivo de credencial de acesso"),
-    (r"(^|/)credentials(\.json|\.yml|\.yaml)?$", "critical", "Arquivo de credenciais"),
-    (r"service[-_]?account.*\.json$", "critical", "Service account do GCP (contem chave privada)"),
-    (r"\.tfstate(\.backup)?$", "critical", "Terraform state - armazena secrets em texto claro"),
-    (r"(^|/)\.npmrc$|(^|/)\.pypirc$", "high", "Config de registry - costuma conter token"),
-    (r"(^|/)secrets?\.(ya?ml|json|properties|toml)$", "high", "Arquivo de secrets"),
-    (r"\.(ovpn|kubeconfig)$|(^|/)kubeconfig$", "high", "Config de acesso a rede/cluster"),
-    (r"\.(sql|dump)$", "medium", "Dump de banco - verificar se contem dado real"),
-    (r"\.(sqlite3?|db)$", "medium", "Banco de dados versionado - verificar conteudo"),
-    (r"(^|/)\.htpasswd$", "high", "Hash de senha HTTP"),
-    (r"(^|/)\.DS_Store$|(^|/)Thumbs\.db$", "low", "Arquivo de metadados do SO (ruido)"),
-    (r"\.(bak|backup|old|orig)$|~$", "low", "Arquivo de backup - pode conter versao antiga com secret"),
+     "Versioned .env file - usually holds every credential"),
+    (r"(^|/)id_(rsa|dsa|ecdsa|ed25519)$", "critical", "Private SSH key"),
+    (r"\.(pem|key|p12|pfx|jks|keystore|ppk)$", "critical", "Private key/certificate file"),
+    (r"(^|/)\.pgpass$|(^|/)\.netrc$|(^|/)\.my\.cnf$", "critical", "Access credential file"),
+    (r"(^|/)credentials(\.json|\.yml|\.yaml)?$", "critical", "Credentials file"),
+    (r"service[-_]?account.*\.json$", "critical", "GCP service account (contains a private key)"),
+    (r"\.tfstate(\.backup)?$", "critical", "Terraform state - stores secrets in plain text"),
+    (r"(^|/)\.npmrc$|(^|/)\.pypirc$", "high", "Registry config - usually contains a token"),
+    (r"(^|/)secrets?\.(ya?ml|json|properties|toml)$", "high", "Secrets file"),
+    (r"\.(ovpn|kubeconfig)$|(^|/)kubeconfig$", "high", "Network/cluster access config"),
+    (r"\.(sql|dump)$", "medium", "Database dump - check whether it holds real data"),
+    (r"\.(sqlite3?|db)$", "medium", "Versioned database - check its contents"),
+    (r"(^|/)\.htpasswd$", "high", "HTTP password hash"),
+    (r"(^|/)\.DS_Store$|(^|/)Thumbs\.db$", "low", "OS metadata file (noise)"),
+    (r"\.(bak|backup|old|orig)$|~$", "low", "Backup file - may hold an old version with a secret"),
 ]
 
-# (id, regex, severidade, descricao, grupo_do_segredo)
+# (id, regex, severity, description, secret_group)
 SECRET_RULES = [
     ("aws_access_key", r"\b((?:AKIA|ASIA|ABIA|ACCA)[A-Z0-9]{16})\b", "critical",
      "AWS Access Key ID", 1),
     ("aws_secret", r"(?i)aws[_\-. ]?secret[_\-. ]?(?:access[_\-. ]?)?key\s*[:=]\s*['\"]?([A-Za-z0-9/+=]{40})['\"]?",
      "critical", "AWS Secret Access Key", 1),
     ("gcp_private_key", r'"type"\s*:\s*"service_account"', "critical",
-     "Service account do GCP (JSON com chave privada)", 0),
+     "GCP service account (JSON with private key)", 0),
     ("azure_conn", r"(?i)(DefaultEndpointsProtocol=https?;AccountName=[^;]+;AccountKey=[A-Za-z0-9+/=]{40,})",
      "critical", "Azure Storage connection string", 1),
     ("private_key_block", r"-----BEGIN (?:RSA |DSA |EC |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----",
-     "critical", "Bloco de chave privada", 0),
+     "critical", "Private key block", 0),
     ("github_token", r"\b((?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,})\b", "critical",
      "GitHub token", 1),
     ("github_pat_new", r"\b(github_pat_[A-Za-z0-9_]{60,})\b", "critical", "GitHub fine-grained PAT", 1),
@@ -92,64 +92,64 @@ SECRET_RULES = [
     ("google_api_key", r"\b(AIza[A-Za-z0-9_\-]{35})\b", "high", "Google API key", 1),
     ("firebase_url", r"(https://[a-z0-9\-]+\.firebaseio\.com)", "medium", "Firebase DB URL", 1),
     ("npm_token", r"(?i)//registry\.npmjs\.org/:_authToken\s*=\s*([A-Za-z0-9\-_]{20,})",
-     "critical", "Token do npm registry", 1),
+     "critical", "npm registry token", 1),
     ("jwt", r"\b(eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,})\b",
-     "high", "JWT (verificar se contem dado real / esta ativo)", 1),
+     "high", "JWT (check whether it holds real data / is still active)", 1),
     ("conn_string_pwd",
      r"(?i)\b((?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp|mssql|jdbc:[a-z]+)://[^\s:@/'\"]+:[^\s@'\"]{3,}@[^\s'\"<>]+)",
-     "critical", "Connection string com senha embutida", 1),
+     "critical", "Connection string with embedded password", 1),
     ("url_basic_auth", r"\b(https?://[^\s:@/'\"]+:[^\s@'\"]{3,}@[^\s'\"<>]+)", "high",
-     "URL com credencial basic-auth", 1),
+     "URL with basic-auth credential", 1),
     ("hardcoded_password",
      r"(?i)\b(?:password|passwd|pwd|senha|secret|token|api[_\-]?key|apikey|access[_\-]?key|auth[_\-]?token|client[_\-]?secret)\b\s*[:=]\s*['\"]([^'\"\s${}<>]{6,80})['\"]",
-     "high", "Credencial hardcoded", 1),
-    # Config no estilo chave=valor (.properties/.yml/.ini/.env/.conf).
-    # Aceita '#' DENTRO do valor (senha forte costuma ter) mas ignora
-    # comentario de fim de linha precedido por espaco: "  # comentario".
+     "high", "Hardcoded credential", 1),
+    # key=value style config (.properties/.yml/.ini/.env/.conf).
+    # Accepts '#' INSIDE the value (strong passwords often have it) but ignores
+    # an end-of-line comment preceded by whitespace: "  # comment".
     ("hardcoded_password_prop",
      r"(?im)^[ \t]*(?:[\w.\-]*\.)?(?:password|passwd|pwd|senha|secret|api[_\-]?key|apikey|client[_\-]?secret|access[_\-]?token|auth[_\-]?token)[ \t]*[:=][ \t]*"
      r"(?!\$\{|\$\(|%\(|<|\{\{|\$[A-Z_]+\b|['\"]?\s*$)"
      r"['\"]?([^\s'\"][^\r\n'\"]{4,80}?)['\"]?[ \t]*(?:[ \t]+[#;].*)?$",
-     "high", "Credencial hardcoded em arquivo de config", 1),
+     "high", "Hardcoded credential in a config file", 1),
     ("basic_auth_header", r"(?i)Authorization\s*[:=]\s*['\"]?Basic\s+([A-Za-z0-9+/=]{16,})", "high",
-     "Header Basic auth com credencial", 1),
+     "Basic auth header with credential", 1),
     ("bearer_header", r"(?i)Authorization\s*[:=]\s*['\"]?Bearer\s+([A-Za-z0-9._\-]{20,})", "high",
-     "Header Bearer com token", 1),
+     "Bearer header with token", 1),
 ]
 
 # PII / PCI / PHI
 PII_RULES = [
-    ("cpf", r"\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b", "high", "CPF (formatado)", 1),
-    ("cpf_raw", r"(?<![\d.\-/])(\d{11})(?![\d.\-/])", "medium", "Possivel CPF (11 digitos)", 1),
-    ("cnpj", r"\b(\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2})\b", "medium", "CNPJ", 1),
-    ("rg", r"(?i)\brg\s*[:=]?\s*([\d.\-]{7,12})\b", "high", "RG", 1),
-    ("cnh", r"(?i)\bcnh\s*[:=]?\s*(\d{9,11})\b", "high", "CNH", 1),
+    ("cpf", r"\b(\d{3}\.\d{3}\.\d{3}-\d{2})\b", "high", "Brazilian CPF tax ID (formatted)", 1),
+    ("cpf_raw", r"(?<![\d.\-/])(\d{11})(?![\d.\-/])", "medium", "Possible Brazilian CPF tax ID (11 digits)", 1),
+    ("cnpj", r"\b(\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2})\b", "medium", "Brazilian CNPJ company ID", 1),
+    ("rg", r"(?i)\brg\s*[:=]?\s*([\d.\-]{7,12})\b", "high", "Brazilian RG identity card", 1),
+    ("cnh", r"(?i)\bcnh\s*[:=]?\s*(\d{9,11})\b", "high", "Brazilian CNH driver's license", 1),
     ("titulo_eleitor", r"(?i)\bt[ií]tulo\s*(?:de\s*eleitor)?\s*[:=]?\s*(\d{12})\b", "high",
-     "Titulo de eleitor", 1),
+     "Brazilian voter registration number", 1),
     ("credit_card", r"(?<![\d\-])((?:\d[ \-]?){13,19})(?![\d\-])", "critical",
-     "Numero de cartao de credito (validado por Luhn)", 1),
+     "Credit card number (Luhn-validated)", 1),
     ("cvv", r"(?i)\b(?:cvv|cvc|cvv2|security[_\-\s]?code)\s*[:=]\s*['\"]?(\d{3,4})['\"]?", "critical",
-     "CVV/CVC de cartao", 1),
-    ("iban", r"\b([A-Z]{2}\d{2}[A-Z0-9]{11,30})\b", "high", "IBAN (conta bancaria)", 1),
+     "Card CVV/CVC", 1),
+    ("iban", r"\b([A-Z]{2}\d{2}[A-Z0-9]{11,30})\b", "high", "IBAN (bank account)", 1),
     ("phone_br", r"(?<![\d])(\(?\d{2}\)?[\s\-]?9?\d{4}[\s\-]?\d{4})(?![\d])", "low",
-     "Possivel telefone BR", 1),
+     "Possible Brazilian phone number", 1),
     ("email", r"\b([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})\b", "low",
-     "Endereco de e-mail", 1),
-    ("cep_address", r"\b(\d{5}-\d{3})\b", "low", "CEP", 1),
+     "E-mail address", 1),
+    ("cep_address", r"\b(\d{5}-\d{3})\b", "low", "Brazilian CEP postal code", 1),
     ("phi_terms",
      r"(?i)\b(?:cid[\-\s]?10\s*[:=]?\s*[A-Z]\d{2}|prontu[aá]rio\s*[:=]?\s*\d+|carteirinha\s*[:=]?\s*[\d.\-]+|diagn[oó]stico\s*[:=]\s*\w+)",
-     "critical", "Possivel dado de saude (PHI)", 0),
+     "critical", "Possible health data (PHI)", 0),
 ]
 
 INFRA_RULES = [
     ("private_ip", r"\b((?:10\.(?:\d{1,3}\.){2}\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}))\b",
-     "medium", "IP privado/interno", 1),
+     "medium", "Private/internal IP", 1),
     ("internal_host", r"\b([a-z0-9\-]+\.(?:local|internal|intranet|corp|lan|home|priv))\b", "medium",
-     "Hostname interno", 1),
+     "Internal hostname", 1),
     ("user_path", r"((?:[A-Z]:\\Users\\|/home/|/Users/)[A-Za-z0-9._\-]{2,40}[/\\])", "low",
-     "Caminho absoluto revelando usuario do SO", 1),
+     "Absolute path revealing an OS username", 1),
     ("admin_port", r"\b(?:localhost|127\.0\.0\.1|0\.0\.0\.0)[:](\d{2,5})\b", "low",
-     "Endpoint local com porta", 1),
+     "Local endpoint with port", 1),
 ]
 
 PLACEHOLDER = re.compile(
@@ -167,9 +167,9 @@ TEST_PATH = re.compile(
 
 DOC_EXT = {".md", ".rst", ".txt", ".adoc"}
 
-# Cartoes de teste publicos dos gateways (Stripe/Visa/MC/Amex/Discover).
-# Montados por concatenacao de proposito: assim os digitos nao aparecem como
-# literal continuo e o proprio scanner nao se acusa ao varrer este arquivo.
+# Public gateway test cards (Stripe/Visa/MC/Amex/Discover).
+# Built by concatenation on purpose: the digits never appear as one continuous
+# literal, so the scanner does not flag itself when scanning this file.
 TEST_CARDS = {
     "4111" + "1111" + "1111" + "1111",
     "4242" + "4242" + "4242" + "4242",
@@ -179,11 +179,11 @@ TEST_CARDS = {
     "6011" + "1111" + "1111" + "1117",
 }
 
-# Arquivos de configuracao chave=valor, onde a regra _prop faz sentido
+# key=value config files, where the _prop rule makes sense
 CONFIG_EXT = {".properties", ".yml", ".yaml", ".ini", ".cfg", ".conf", ".toml",
               ".env", ".editorconfig", ".tfvars"}
 
-# Leitura de variavel de ambiente = padrao CORRETO, nunca vazamento
+# Reading an environment variable = the CORRECT pattern, never a leak
 ENV_REFERENCE = re.compile(
     r"(?i)(?:process\.env\b|os\.environ|os\.getenv|System\.getenv|ENV\[|"
     r"\$\{[A-Za-z_]|\$[A-Z_]{2,}\b|%[A-Z_]{2,}%|config\.get|dotenv|"
@@ -191,7 +191,7 @@ ENV_REFERENCE = re.compile(
 )
 
 
-# ------------------------------------------------------------------ utilitarios
+# ------------------------------------------------------------------ helpers
 
 def entropy(s: str) -> float:
     if not s:
@@ -202,7 +202,7 @@ def entropy(s: str) -> float:
 
 
 def mask(secret: str) -> str:
-    """Mascara o segredo pra saida. NUNCA imprimir valor completo."""
+    """Mask the secret for output. NEVER print the full value."""
     s = secret.strip()
     if not s:
         return ""
@@ -212,7 +212,7 @@ def mask(secret: str) -> str:
 
 
 def mask_len(secret: str) -> str:
-    """Versao com tamanho, para a linha 'valor:' do relatorio."""
+    """Masked version with length, for the report's 'value:' line."""
     s = (secret or "").strip()
     return f"{mask(s)} (len={len(s)})" if s else ""
 
@@ -257,17 +257,17 @@ def is_placeholder(value: str) -> bool:
 
 
 def looks_random(value: str, min_entropy: float = 3.0) -> bool:
-    """Segredo real costuma ter entropia alta. Palavra de dicionario, nao."""
+    """A real secret usually has high entropy. A dictionary word does not."""
     v = value.strip()
     if len(v) < 12:
-        return True                  # curto demais pra julgar por entropia
+        return True                  # too short to judge by entropy
     return entropy(v) >= min_entropy
 
 
-# ------------------------------------------------------------------ validacao
+# ------------------------------------------------------------------ validation
 
 def validate(rule_id: str, value: str, path: str, line_text: str) -> tuple[bool, str]:
-    """Retorna (manter, nota). Filtra falso positivo obvio."""
+    """Return (keep, note). Filters obvious false positives."""
     v = (value or "").strip()
 
     if rule_id in {"credit_card"}:
@@ -275,19 +275,19 @@ def validate(rule_id: str, value: str, path: str, line_text: str) -> tuple[bool,
         if not luhn_ok(digits):
             return False, ""
         if digits in TEST_CARDS:
-            return True, "cartao de TESTE conhecido do gateway"
-        return True, "passou na validacao Luhn"
+            return True, "well-known gateway TEST card"
+        return True, "passed Luhn validation"
 
     if rule_id == "cpf_raw":
         if not cpf_ok(v):
             return False, ""
-        return True, "digitos verificadores validos"
+        return True, "valid check digits"
 
     if rule_id == "cpf":
-        return (True, "digitos verificadores validos") if cpf_ok(v) else (True, "formato de CPF, DV invalido")
+        return (True, "valid check digits") if cpf_ok(v) else (True, "CPF format, invalid check digits")
 
     if rule_id in {"hardcoded_password", "hardcoded_password_prop", "basic_auth_header"}:
-        # Referencia a variavel de ambiente E o padrao CORRETO - nunca e vazamento.
+        # An environment-variable reference IS the CORRECT pattern - never a leak.
         if ENV_REFERENCE.search(v):
             return False, ""
         if is_placeholder(v):
@@ -297,7 +297,7 @@ def validate(rule_id: str, value: str, path: str, line_text: str) -> tuple[bool,
         if v.lower() in {"true", "false", "none", "null", "localhost", "postgres",
                          "root", "admin", "user", "guest", "default"}:
             return False, ""
-        # .properties de config so vale em arquivo de config, nao em codigo-fonte
+        # the .properties-style rule only applies to config files, not source code
         if rule_id == "hardcoded_password_prop":
             ext = os.path.splitext(path)[1].lower()
             base = os.path.basename(path).lower()
@@ -320,17 +320,17 @@ def validate(rule_id: str, value: str, path: str, line_text: str) -> tuple[bool,
 
 
 def adjust_severity(sev: str, path: str, ext: str) -> tuple[str, str]:
-    """Contexto de teste/doc rebaixa a severidade, mas nao elimina o achado."""
+    """Test/doc context lowers the severity, but does not drop the finding."""
     if TEST_PATH.search(path.replace("\\", "/")):
         lowered = {"critical": "medium", "high": "low", "medium": "low", "low": "low"}
-        return lowered[sev], "em caminho de teste/exemplo"
+        return lowered[sev], "in a test/example path"
     if ext in DOC_EXT:
         lowered = {"critical": "medium", "high": "low", "medium": "low", "low": "low"}
-        return lowered[sev], "em documentacao"
+        return lowered[sev], "in documentation"
     return sev, ""
 
 
-# ------------------------------------------------------------------ varredura
+# ------------------------------------------------------------------ scanning
 
 def build_rules(include_pii: bool, include_infra: bool):
     rules = list(SECRET_RULES)
@@ -361,7 +361,7 @@ def scan_text(text: str, path: str, rules, out: list, source: str = "worktree") 
             final_sev, ctx = adjust_severity(sev, path, ext)
             notes = [n for n in (note, ctx) if n]
             snippet = lines[line_no - 1].strip()[:150] if line_no <= len(lines) else ""
-            # nunca vazar o valor no snippet
+            # never leak the value in the snippet
             if value and len(value) > 6 and value in snippet:
                 snippet = snippet.replace(value, mask(value))
 
@@ -414,7 +414,7 @@ def scan_worktree(root: str, rules, max_bytes: int) -> tuple[list, int]:
     return findings, count
 
 
-# ------------------------------------------------------------------ historico
+# ------------------------------------------------------------------ history
 
 def git(root: str, *args: str, timeout: int = 90):
     try:
@@ -438,16 +438,16 @@ def scan_history(root: str, rules, max_commits: int) -> tuple[list, dict]:
     revs = [r for r in git(root, "rev-list", "--all", f"--max-count={max_commits}").split() if r]
     info["commits"] = len(revs)
 
-    # arquivos sensiveis que existiram em qualquer ponto do historico
+    # sensitive files that existed at any point in history
     names = git(root, "log", "--all", "--pretty=format:", "--name-only", "--diff-filter=A")
     for name in sorted(set(n.strip() for n in names.splitlines() if n.strip())):
         pre = len(findings)
         check_filename(name, findings, source="history")
         if len(findings) > pre:
-            findings[-1]["note"] = ("existiu no historico; " + findings[-1]["note"]).strip("; ")
+            findings[-1]["note"] = ("existed in history; " + findings[-1]["note"]).strip("; ")
             info["deleted_sensitive"].append(name)
 
-    # conteudo dos blobs adicionados em cada commit
+    # content of the blobs added in each commit
     for rev in revs:
         diff = git(root, "show", rev, "--no-color", "--diff-filter=AM",
                    "--unified=0", "--format=%H", timeout=30)
@@ -467,14 +467,14 @@ def scan_history(root: str, rules, max_commits: int) -> tuple[list, dict]:
             scan_text("\n".join(chunk), f, rules, findings, source=f"history:{rev[:8]}")
             for fi in findings[pre:]:
                 fi["line"] = 0
-                fi["note"] = (fi["note"] + f"; adicionado no commit {rev[:8]}").strip("; ")
+                fi["note"] = (fi["note"] + f"; added in commit {rev[:8]}").strip("; ")
     return findings, info
 
 
-# ------------------------------------------------------------------ relatorio
+# ------------------------------------------------------------------ report
 
 def dedupe(findings: list) -> list:
-    """Agrupa achado identico repetido, mantendo o de maior severidade."""
+    """Collapse identical repeated findings, keeping the highest severity."""
     best: dict = {}
     for f in findings:
         key = (f["rule"], f["file"], f["match"], f["source"].split(":")[0])
@@ -485,20 +485,20 @@ def dedupe(findings: list) -> list:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Auditoria de exposicao pre-publicacao")
+    ap = argparse.ArgumentParser(description="Pre-publication exposure audit")
     ap.add_argument("repo")
-    ap.add_argument("--history", action="store_true", help="varrer tambem o historico do git")
+    ap.add_argument("--history", action="store_true", help="also scan the git history")
     ap.add_argument("--max-commits", type=int, default=400)
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--severity", choices=["low", "medium", "high", "critical"], default="low")
-    ap.add_argument("--no-pii", action="store_true", help="nao procurar PII/PCI/PHI")
-    ap.add_argument("--no-infra", action="store_true", help="nao procurar IP/hostname interno")
+    ap.add_argument("--no-pii", action="store_true", help="do not look for PII/PCI/PHI")
+    ap.add_argument("--no-infra", action="store_true", help="do not look for internal IPs/hostnames")
     ap.add_argument("--max-bytes", type=int, default=2 * 1024 * 1024)
     args = ap.parse_args()
 
     root = os.path.abspath(args.repo)
     if not os.path.isdir(root):
-        print(f"erro: nao e um diretorio: {root}", file=sys.stderr)
+        print(f"error: not a directory: {root}", file=sys.stderr)
         return 2
 
     rules = build_rules(not args.no_pii, not args.no_infra)
@@ -526,25 +526,25 @@ def main() -> int:
         return 0
 
     print(f"repo    : {root}")
-    print(f"arquivos: {scanned}")
+    print(f"files   : {scanned}")
     if args.history:
         if hist_info["available"]:
-            print(f"historico: {hist_info['commits']} commits varridos")
+            print(f"history : {hist_info['commits']} commits scanned")
         else:
-            print("historico: nao e repositorio git (ou git indisponivel)")
-    print(f"achados : {len(findings)}  "
+            print("history : not a git repository (or git unavailable)")
+    print(f"findings: {len(findings)}  "
           f"[critical={counts['critical']} high={counts['high']} "
           f"medium={counts['medium']} low={counts['low']}]\n")
 
     if not findings:
-        print("Nenhum achado no escopo analisado.")
-        print("ATENCAO: scanner nao acha 100%. Revisao manual ainda e recomendada,")
-        print("principalmente para dado pessoal em fixtures/dumps e secret em formato incomum.")
+        print("No findings in the analyzed scope.")
+        print("WARNING: no scanner finds 100%. Manual review is still recommended,")
+        print("especially for personal data in fixtures/dumps and secrets in unusual formats.")
         if not args.history:
-            print("\nVoce NAO varreu o historico. Rode de novo com --history antes de publicar.")
+            print("\nYou did NOT scan the history. Run again with --history before publishing.")
         return 0
 
-    label = {"critical": "CRITICO", "high": "ALTO", "medium": "MEDIO", "low": "BAIXO"}
+    label = {"critical": "CRITICAL", "high": "HIGH", "medium": "MEDIUM", "low": "LOW"}
     for sev in ("critical", "high", "medium", "low"):
         group = [f for f in findings if f["severity"] == sev]
         if not group:
@@ -556,24 +556,24 @@ def main() -> int:
             print(f"  {f['desc']}{src}")
             print(f"    {loc}")
             if f["match"]:
-                print(f"    valor: {f['match']}")
+                print(f"    value: {f['match']}")
             if f["note"]:
-                print(f"    nota : {f['note']}")
+                print(f"    note : {f['note']}")
             if f["snippet"]:
                 print(f"    > {f['snippet']}")
             print()
 
     print("=" * 62)
     if blockers:
-        print(f"VEREDITO: NAO PUBLICAR — {blockers} bloqueador(es) critico/alto.")
-        print("Ordem de remediacao: (1) ROTACIONAR a credencial, (2) tirar do codigo,")
-        print("(3) limpar o historico se ja foi commitada, (4) prevenir com .gitignore + hook.")
+        print(f"VERDICT: DO NOT PUBLISH — {blockers} critical/high blocker(s).")
+        print("Remediation order: (1) ROTATE the credential, (2) take it out of the code,")
+        print("(3) clean the history if it was already committed, (4) prevent with .gitignore + hook.")
     else:
-        print("VEREDITO: nenhum bloqueador critico/alto no escopo analisado.")
-        print("Revise os itens medio/baixo antes de publicar.")
+        print("VERDICT: no critical/high blockers in the analyzed scope.")
+        print("Review the medium/low items before publishing.")
     if not args.history and hist_info["available"] is False:
-        print("\nAVISO: historico do git NAO foi varrido. Rode com --history —")
-        print("segredo deletado continua no historico e vaza igual.")
+        print("\nWARNING: git history was NOT scanned. Run with --history —")
+        print("a deleted secret still lives in history and leaks just the same.")
     return 0
 
 

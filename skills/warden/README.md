@@ -64,5 +64,4 @@ python3 scripts/deobfuscate.py file.js --extract   # list encoded blobs only
 `phishing`, `typosquatting`, `postinstall script`, `IoC`, `YARA`, `sandbox`,
 `is this file safe?`, `is this link malicious?`, `is my PC infected?`
 
-Also triggers in PT-BR: `analisa esse arquivo`, `esse .exe é seguro?`, `esse repo tem vírus?`,
-`baixei isso, posso rodar?`, `meu PC tá infectado?`, `arquivo suspeito`.
+Also triggers on the equivalent phrases in other languages.

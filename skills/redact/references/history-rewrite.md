@@ -1,84 +1,84 @@
-# Limpeza de Histórico do Git
+# Git History Cleanup
 
-**Operação destrutiva.** Reescreve os SHAs de todos os commits afetados e de todos os
-descendentes, exige `push --force`, e quebra o clone de qualquer pessoa que já tenha o repo.
+**Destructive operation.** It rewrites the SHAs of every affected commit and all their
+descendants, requires `push --force`, and breaks the clone of anyone who already has the repo.
 
-**Nunca rode sem confirmação explícita do usuário.**
-
----
-
-## Antes de começar, entenda o limite
-
-Reescrever histórico **não desfaz um vazamento que já foi público.**
-
-Se o repo esteve público, mesmo por minutos:
-- bots varrem o GitHub em tempo real e chaves de nuvem são exploradas em minutos
-- forks, mirrors e clones locais de terceiros mantêm os commits antigos
-- caches do GitHub podem servir o commit por SHA mesmo depois do force-push
-- serviços de indexação e o Wayback Machine podem ter copiado
-
-Então: **rotacione a credencial primeiro, sempre.** Reescrever o histórico é higiene,
-não remediação. A remediação é a rotação.
-
-Se o repo **sempre foi privado** e só você e a Marcele têm clone, a reescrita é
-suficiente — e ainda assim rotacione se a chave for de produção.
+**Never run it without explicit confirmation from the user.**
 
 ---
 
-## Passo 0 — Backup
+## Before you start, understand the limit
+
+Rewriting history **does not undo a leak that was already public.**
+
+If the repo was public, even for minutes:
+- bots sweep GitHub in real time and cloud keys are exploited within minutes
+- forks, mirrors and third-party local clones keep the old commits
+- GitHub caches can serve the commit by SHA even after the force-push
+- indexing services and the Wayback Machine may have copied it
+
+So: **rotate the credential first, always.** Rewriting history is hygiene,
+not remediation. The remediation is the rotation.
+
+If the repo **was always private** and only you and your collaborators have clones, the
+rewrite is enough — and still rotate if the key belongs to production.
+
+---
+
+## Step 0 — Backup
 
 ```bash
-git clone --mirror /caminho/do/repo /caminho/backup-repo.git
-# ou simplesmente
+git clone --mirror /path/to/repo /path/to/backup-repo.git
+# or simply
 cp -r repo repo-backup
 ```
 
-Confirme que o backup abre antes de mexer no original.
+Confirm the backup opens before touching the original.
 
 ---
 
-## Opção A — `git filter-repo` (recomendada)
+## Option A — `git filter-repo` (recommended)
 
-Não está instalada nesta máquina. Instalar:
+Not shipped with git; check with `which git-filter-repo`. Install:
 ```bash
 pip install git-filter-repo
 ```
 
-### Remover um arquivo de todo o histórico
+### Remove a file from the whole history
 ```bash
 cd repo
 git filter-repo --invert-paths --path .env
 git filter-repo --invert-paths --path config/secrets.yml --path deploy.pem
 ```
 
-### Remover um diretório inteiro
+### Remove an entire directory
 ```bash
 git filter-repo --invert-paths --path config/private/
 ```
 
-### Substituir o texto do segredo, preservando os arquivos
-Útil quando o arquivo deve continuar existindo, mas sem o valor.
+### Replace the secret's text, keeping the files
+Useful when the file must keep existing, but without the value.
 
 ```bash
 cat > /tmp/replacements.txt <<'EOF'
-SenhaReal123==>***REMOVED***
-AKIA_EXEMPLO_NAO_REAL==>***REMOVED***
-sk_live_EXEMPLO_NAO_REAL==>***REMOVED***
+RealPassword123==>***REMOVED***
+AKIA_EXAMPLE_NOT_REAL==>***REMOVED***
+sk_live_EXAMPLE_NOT_REAL==>***REMOVED***
 EOF
 
 git filter-repo --replace-text /tmp/replacements.txt
 ```
 
-Depois **apague** `/tmp/replacements.txt` — ele contém os segredos em texto claro.
+Afterwards **delete** `/tmp/replacements.txt` — it contains the secrets in plain text.
 
-> `filter-repo` exige um clone limpo por padrão. Em repo com working tree sujo ele recusa;
-> use `--force` só se souber que não vai perder trabalho não commitado.
+> `filter-repo` requires a fresh clone by default. On a repo with a dirty working tree it
+> refuses; use `--force` only if you know you will not lose uncommitted work.
 
 ---
 
-## Opção B — BFG Repo-Cleaner
+## Option B — BFG Repo-Cleaner
 
-Também não instalado. Requer Java. Baixar o `.jar` do site oficial.
+Requires Java. Download the `.jar` from the official site.
 
 ```bash
 java -jar bfg.jar --delete-files .env repo.git
@@ -89,27 +89,27 @@ git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 ```
 
-BFG não mexe no commit mais recente (HEAD) — limpe o arquivo no working tree e commite
-**antes** de rodar.
+BFG does not touch the latest commit (HEAD) — clean the file in the working tree and
+commit **before** running it.
 
 ---
 
-## Opção C — `git filter-branch` (só se não puder instalar nada)
+## Option C — `git filter-branch` (only if you cannot install anything)
 
-Nativo do git, disponível aqui. É lento e o próprio git desaconselha, mas funciona.
+Built into git, always available. It is slow and git itself discourages it, but it works.
 
 ```bash
 git filter-branch --force --index-filter \
   "git rm --cached --ignore-unmatch .env" \
   --prune-empty --tag-name-filter cat -- --all
 
-# limpar as referências que o filter-branch deixa para trás
+# clean up the refs filter-branch leaves behind
 rm -rf .git/refs/original/
 git reflog expire --expire=now --all
 git gc --prune=now --aggressive
 ```
 
-Para várias entradas:
+For several entries:
 ```bash
 git filter-branch --force --index-filter \
   "git rm --cached --ignore-unmatch .env config/secrets.yml deploy.pem" \
@@ -118,57 +118,57 @@ git filter-branch --force --index-filter \
 
 ---
 
-## Passo final — publicar a reescrita
+## Final step — publish the rewrite
 
 ```bash
-# conferir que sumiu ANTES de empurrar
-git --no-pager log --all --oneline -- .env        # sem saída = removido
-git --no-pager log -S'SenhaReal123' --all --oneline
+# confirm it is gone BEFORE pushing
+git --no-pager log --all --oneline -- .env        # no output = removed
+git --no-pager log -S'RealPassword123' --all --oneline
 
-# empurrar
+# push
 git push origin --force --all
 git push origin --force --tags
 ```
 
-Se o GitHub ainda mostrar o commit antigo por URL/SHA, abra um ticket no suporte pedindo
-garbage collection — só eles limpam o cache do lado do servidor.
+If GitHub still shows the old commit by URL/SHA, open a support ticket asking for
+garbage collection — only they can clear the server-side cache.
 
 ---
 
-## Passo crítico com a Marcele (repo compartilhado)
+## Critical step on a shared repo
 
-Depois do force-push, **quem não reescreveu precisa re-clonar**:
+After the force-push, **whoever did not rewrite must re-clone**:
 
 ```bash
-# ERRADO — recria os commits antigos e desfaz sua limpeza
+# WRONG — recreates the old commits and undoes your cleanup
 git pull
 
-# CERTO
+# RIGHT
 cd ..
-rm -rf projeto
-git clone git@github.com:usuario/projeto.git
+rm -rf project
+git clone git@github.com:user/project.git
 ```
 
-Combine antes: quem tiver trabalho não commitado deve salvar o patch primeiro.
+Agree beforehand: anyone with uncommitted work should save a patch first.
 ```bash
-git diff > /tmp/meu-trabalho.patch     # antes de deletar o clone
-git apply /tmp/meu-trabalho.patch      # depois de re-clonar
+git diff > /tmp/my-work.patch     # before deleting the clone
+git apply /tmp/my-work.patch      # after re-cloning
 ```
 
-Force-push com a outra pessoa dando `git pull` no meio é a receita para os commits
-antigos voltarem e o segredo reaparecer.
+A force-push while a collaborator runs `git pull` in the middle is the recipe for the old
+commits coming back and the secret reappearing.
 
 ---
 
-## Checklist de encerramento
+## Closing checklist
 
-- [ ] Credencial **rotacionada** no provedor (feito antes de tudo)
-- [ ] Verificado se a chave antiga foi usada por terceiro (logs do provedor)
-- [ ] Backup do repo criado e testado
-- [ ] Histórico reescrito e verificado (`git log -S` sem resultado)
-- [ ] Force-push feito em todas as branches e tags
-- [ ] Marcele avisada e re-clonou
-- [ ] `.gitignore` corrigido
-- [ ] `.env.example` versionado
-- [ ] Pre-commit hook instalado (ver `prevention.md`)
-- [ ] Scanner rodado de novo: `scan_secrets.py . --history` → limpo
+- [ ] Credential **rotated** at the provider (done before anything else)
+- [ ] Checked whether the old key was used by a third party (provider logs)
+- [ ] Repo backup created and tested
+- [ ] History rewritten and verified (`git log -S` returns nothing)
+- [ ] Force-push done on all branches and tags
+- [ ] Collaborators notified and re-cloned
+- [ ] `.gitignore` fixed
+- [ ] `.env.example` versioned
+- [ ] Pre-commit hook installed (see `prevention.md`)
+- [ ] Scanner run again: `scan_secrets.py . --history` → clean

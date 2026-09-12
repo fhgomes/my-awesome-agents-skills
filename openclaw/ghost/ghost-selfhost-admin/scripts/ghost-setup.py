@@ -360,7 +360,7 @@ class GhostSprint1:
         
         settings = [
             {"key": "title", "value": "Your Blog Title"},
-            {"key": "description", "value": "Carreira técnica de verdade. FinTech pragmático. Tudo o que funciona em produção."},
+            {"key": "description", "value": "Your blog tagline. Localize it to the blog's language."},
             {"key": "accent_color", "value": "#f1592a"},
             {"key": "lang", "value": "pt"},
             {"key": "timezone", "value": "Europe/Berlin"},

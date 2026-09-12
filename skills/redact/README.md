@@ -86,6 +86,4 @@ On a correctly written repo: zero findings.
 `connection string`, `PII`, `PCI`, `PHI`, `LGPD`, `GDPR`, `git history`, `rewrite history`,
 `BFG`, `filter-repo`, `make repo public`, `open source this`, `is it safe to publish?`
 
-Also triggers in PT-BR: `vou tornar esse repo público`, `tem segredo no código?`,
-`vazou alguma senha?`, `commitei o .env sem querer`, `como tiro isso do histórico`,
-`tem CPF no código?`.
+Also triggers on the equivalent phrases in other languages.

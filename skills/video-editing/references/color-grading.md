@@ -1,191 +1,195 @@
-# Color grading no ffmpeg (para corte de entrevista)
+# Color grading in ffmpeg (for interview cuts)
 
-Escrito do zero pra este pipeline. Ideias de color science são conhecimento de
-domínio (livre); os números aqui foram **medidos nesta máquina** em 2026-08-09,
-não copiados. Filtros conferidos nos DOIS builds: WSL 4.4.2 e Windows 7.1.
+Written from scratch for this pipeline. The color-science ideas are domain
+knowledge (free); the numbers here were **measured on one machine** on
+2026-08-09, not copied. Filters verified on BOTH builds: WSL 4.4.2 and
+Windows 7.1.
 
-Escopo: footage real de palestra/entrevista (celular, iPhone HLG, câmera de
-evento). Não cobre grade criativo de ficção — nosso objetivo é **parecer
-natural e consistente**, não "cinematográfico".
+Scope: real talk/interview footage (phone, iPhone HLG, event camera). Does not
+cover creative grading for fiction — our goal is to **look natural and
+consistent**, not "cinematic".
 
-## Quando NÃO gradear
+## When NOT to grade
 
-Comece por aqui, porque é a resposta certa na maioria dos cortes:
+Start here, because it is the right answer for most cuts:
 
-- **Footage já bem exposto** → não mexa. Grade ruim é pior que nenhum.
-- **Um corte só, sem intercalar fontes** → ninguém tem referência pra comparar.
-- **Se o problema é exposição/branco errado**, isso é *correção*, não grade —
-  conserte e pare. Grade é a camada estética que vem depois.
+- **Footage already well exposed** → leave it alone. A bad grade is worse than none.
+- **A single cut, with no intercut sources** → nobody has a reference to compare against.
+- **If the problem is exposure / wrong white balance**, that is *correction*, not
+  grading — fix it and stop. Grading is the aesthetic layer that comes after.
 
-O caso que realmente pede grade aqui: **juntar trechos de câmeras/momentos
-diferentes no mesmo corte** (cold open de um take, corpo de outro). Aí a
-inconsistência salta aos olhos e a correção vale o trabalho.
+The case that genuinely calls for grading here: **joining footage from
+different cameras/moments in the same cut** (cold open from one take, body
+from another). Then the inconsistency jumps out and the correction earns its keep.
 
-## Ordem da chain (importa)
+## Chain order (it matters)
 
-Cada filtro opera no resultado do anterior, então a ordem muda o resultado:
+Each filter operates on the previous one's output, so the order changes the result:
 
 ```
-1. tonemap/zscale     — só se for HLG/HDR (ver receita de iPhone abaixo)
-2. colortemperature   — corrige o branco primeiro
-3. colorbalance       — desloca cor por faixa (sombra/meio/alta)
-4. curves             — molda contraste
-5. eq                 — ajuste final de contraste/saturação
-6. lut3d              — LUT criativo por ÚLTIMO, sobre imagem já corrigida
+1. tonemap/zscale     — only for HLG/HDR (see the iPhone recipe below)
+2. colortemperature   — fix the white balance first
+3. colorbalance       — shift color per range (shadows/mids/highlights)
+4. curves             — shape contrast
+5. eq                 — final contrast/saturation tweak
+6. lut3d              — creative LUT LAST, on top of an already-corrected image
 ```
 
-Regra prática: **corrigir antes de estilizar**. LUT em cima de branco errado
-multiplica o erro em vez de esconder.
+Rule of thumb: **correct before you stylize**. A LUT on top of a wrong white
+balance multiplies the error instead of hiding it.
 
-## Os filtros que usamos
+## The filters we use
 
-| Filtro | Pra quê | Parâmetros |
+| Filter | What for | Parameters |
 |---|---|---|
-| `eq` | contraste, saturação, brilho, gama | `contrast=1.0:saturation=1.0:brightness=0.0:gamma=1.0` |
-| `colorbalance` | cor por faixa tonal | `rs/gs/bs` sombras · `rm/gm/bm` médios · `rh/gh/bh` altas (−1..1) |
-| `curves` | curva de tom | `all='0/0 0.5/0.5 1/1'` ou `red=`/`green=`/`blue=` |
-| `colortemperature` | balanço de branco | `temperature=6500` neutro · **menor = mais quente** |
-| `lut3d` | aplica .cube | `lut3d='arquivo.cube'` |
-| `normalize` | estica histograma | `blackpt=black:whitept=white` |
+| `eq` | contrast, saturation, brightness, gamma | `contrast=1.0:saturation=1.0:brightness=0.0:gamma=1.0` |
+| `colorbalance` | color per tonal range | `rs/gs/bs` shadows · `rm/gm/bm` mids · `rh/gh/bh` highlights (−1..1) |
+| `curves` | tone curve | `all='0/0 0.5/0.5 1/1'` or `red=`/`green=`/`blue=` |
+| `colortemperature` | white balance | `temperature=6500` neutral · **lower = warmer** |
+| `lut3d` | applies a .cube | `lut3d='file.cube'` |
+| `normalize` | stretches the histogram | `blackpt=black:whitept=white` |
 
-⚠️ `colortemperature` é contraintuitivo: o parâmetro é a temperatura da LUZ da
-cena, então **baixar o número esquenta a imagem**. `temperature=5000` deixa mais
-quente que `6500`, não mais frio.
+⚠️ `colortemperature` is counter-intuitive: the parameter is the temperature of
+the scene's LIGHT, so **lowering the number warms the image**. `temperature=5000`
+comes out warmer than `6500`, not cooler.
 
-Todos existem no 4.4.2 do WSL e no 7.1 do Windows (verificado 2026-08-09).
+All of them exist in WSL's 4.4.2 and Windows' 7.1 (verified 2026-08-09).
 
-## Receitas (medidas, não chutadas)
+## Recipes (measured, not guessed)
 
-Valores de referência medidos em `testsrc2` — a coluna U é o canal
-azul-diferença, que é onde temperatura aparece objetivamente (U menor = menos
-azul = mais quente). Neutro medido: **Y=124.7 U=127.4 V=125.2**.
+Reference values measured on `testsrc2` — the U column is the blue-difference
+channel, which is where temperature shows up objectively (lower U = less blue =
+warmer). Measured neutral: **Y=124.7 U=127.4 V=125.2**.
 
-### Quente / acolhedor — `Y=125.5 U=123.5` (−3.9 U, esquentou)
+### Warm / welcoming — `Y=125.5 U=123.5` (−3.9 U, warmer)
 
 ```
 colorbalance=rs=0.06:gs=0.02:bs=-0.04:rh=0.05:gh=0.01:bh=-0.03,eq=contrast=1.05:saturation=1.08
 ```
 
-Para depoimento, história pessoal, conteúdo de conexão.
+For testimonials, personal stories, connection-oriented content.
 
-### Frio / técnico — `Y=123.5 U=128.6` (+1.1 U, esfriou)
+### Cool / technical — `Y=123.5 U=128.6` (+1.1 U, cooler)
 
 ```
 colorbalance=rs=-0.03:bs=0.06:rh=-0.02:bh=0.04,eq=contrast=1.06:saturation=0.95
 ```
 
-Para conteúdo técnico, principalmente se tem screenshot de IDE dark no corte.
+For technical content, especially when the cut includes a dark-IDE screenshot.
 
-### Punch (alto contraste) — `Y=123.0`, sombras fechadas
+### Punch (high contrast) — `Y=123.0`, crushed shadows
 
 ```
 curves=all='0/0 0.15/0.08 0.5/0.52 0.85/0.92 1/1',eq=contrast=1.15:saturation=1.2
 ```
 
-Chama atenção no feed. ⚠️ **Mede mais agressivo do que parece** — ver a seção
-de pele antes de usar em close.
+Grabs attention in the feed. ⚠️ **Measures more aggressive than it looks** — see
+the skin section before using it on a close-up.
 
-### Sóbrio / sério — `Y=121.2`, contraste lavado
+### Muted / serious — `Y=121.2`, washed contrast
 
 ```
 curves=all='0/0.04 0.25/0.22 0.5/0.47 0.75/0.73 1/0.94',eq=contrast=1.03:saturation=0.75
 ```
 
-Levanta o preto (0/0.04) e segura o branco (1/0.94): o "faded" documental.
+Lifts the black (0/0.04) and holds back the white (1/0.94): the documentary
+"faded" look.
 
-## Pele: o teste que decide
+## Skin: the deciding test
 
-Pele é onde o olho detecta grade errado na hora. A referência clássica é a
-"linha de skin tone" do vetorscópio (~123°, entre vermelho e amarelo).
+Skin is where the eye spots a wrong grade instantly. The classic reference is
+the vectorscope "skin tone line" (~123°, between red and yellow).
 
-**Medi três tons de pele antes e depois de cada grade** (ângulo do vetor de
-croma; o que importa é o DESVIO, não o valor absoluto):
+**Three skin tones were measured before and after each grade** (chroma vector
+angle; what matters is the DEVIATION, not the absolute value):
 
-| Tom | Neutro | Quente | Punch | `saturation=1.3` |
+| Tone | Neutral | Warm | Punch | `saturation=1.3` |
 |---|---|---|---|---|
-| Médio (#C68642) | 139.8° | 141.6° (+1.8) | **143.3° (+3.5)** | 141.1° (+1.3) |
-| Claro (#F1C27D) | 144.9° | 146.0° (+1.1) | **154.8° (+9.9)** | 146.0° (+1.1) |
-| Escuro (#8D5524) | 137.0° | 139.3° (+2.3) | **133.1° (−3.9)** | 138.8° (+1.8) |
+| Medium (#C68642) | 139.8° | 141.6° (+1.8) | **143.3° (+3.5)** | 141.1° (+1.3) |
+| Light (#F1C27D) | 144.9° | 146.0° (+1.1) | **154.8° (+9.9)** | 146.0° (+1.1) |
+| Dark (#8D5524) | 137.0° | 139.3° (+2.3) | **133.1° (−3.9)** | 138.8° (+1.8) |
 
-O que isso mostra, e que vale mais que qualquer regra decorada:
+What this shows — worth more than any memorized rule:
 
-1. **O grade quente é seguro** — desloca ≤2,3° em todos os tons. Pode usar.
-2. **O punch é o perigoso, e de forma desigual**: quase 10° em pele clara e
-   puxa pele escura pro lado OPOSTO (−3,9°). Ou seja, ele não "satura mais",
-   ele **distorce o matiz de forma diferente conforme o tom** — dois
-   participantes com peles diferentes ficam desalinhados entre si.
-3. **A curva é a vilã, não a saturação**: `saturation=1.3` sozinho desloca só
-   ~1,5°, menos que o punch inteiro. A regra comum "não passe de 1.2 de
-   saturação" mira no alvo errado — quem torce a pele é a curva de contraste.
+1. **The warm grade is safe** — it shifts ≤2.3° on every tone. Go ahead.
+2. **Punch is the dangerous one, and unevenly so**: almost 10° on light skin,
+   and it pulls dark skin the OPPOSITE way (−3.9°). In other words, it doesn't
+   "saturate more", it **distorts hue differently depending on the tone** — two
+   participants with different skin end up misaligned with each other.
+3. **The curve is the culprit, not the saturation**: `saturation=1.3` on its own
+   shifts only ~1.5°, less than the whole punch. The common rule "don't go past
+   1.2 saturation" aims at the wrong target — what twists skin is the contrast
+   curve.
 
-**Regra prática daqui**: em close de pessoa, prefira o grade quente ou nada.
-Se for usar punch, **suavize a curva antes de mexer na saturação** — trocar
-`0.15/0.08 ... 0.85/0.92` por `0.15/0.11 ... 0.85/0.90` corta boa parte do
-desvio (medido):
+**Rule of thumb from this**: on a close-up of a person, prefer the warm grade or
+nothing. If you must use punch, **soften the curve before touching saturation** —
+swapping `0.15/0.08 ... 0.85/0.92` for `0.15/0.11 ... 0.85/0.90` removes a good
+part of the deviation (measured):
 
-| Tom | Punch original | Punch suave |
+| Tone | Original punch | Soft punch |
 |---|---|---|
-| Médio | +3.5° | +2.9° |
-| Claro | +9.9° | **+6.2°** |
-| Escuro | −3.9° | **−1.3°** |
+| Medium | +3.5° | +2.9° |
+| Light | +9.9° | **+6.2°** |
+| Dark | −3.9° | **−1.3°** |
 
-O ganho é justamente onde doía mais (pele clara e escura). Versão suave:
+The gain is exactly where it hurt most (light and dark skin). Soft version:
 
 ```
 curves=all='0/0 0.15/0.11 0.5/0.52 0.85/0.90 1/1',eq=contrast=1.15:saturation=1.2
 ```
 
-E sempre extraia frame e OLHE (regra 5) — número não substitui olho.
+And always extract a frame and LOOK (rule 5) — numbers don't replace eyes.
 
-## HDR/HLG de iPhone → SDR
+## iPhone HDR/HLG → SDR
 
-O caso mais comum de "cor errada" aqui não é grade, é **HLG entregue como se
-fosse SDR** — sai lavado e acinzentado. Já está nos exemplos do TDC; a chain:
+The most common "wrong color" case here isn't grading, it's **HLG delivered as
+if it were SDR** — it comes out washed and grayish. See the HDR example in
+`examples/`; the chain:
 
 ```
 zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p
 ```
 
-`hable` preserva melhor a alta-luz que `reinhard`. `desat=0` evita o
-dessaturado que o tonemap costuma introduzir. Isso é **correção**, roda antes
-de qualquer grade.
+`hable` preserves highlights better than `reinhard`. `desat=0` avoids the
+desaturation tonemapping usually introduces. This is **correction**; it runs
+before any grade.
 
-## LUT .cube
+## .cube LUT
 
 ```bash
-# LUT a 70% (mistura com o original) — validado nos dois builds 2026-08-09
+# LUT at 70% (blended with the original) — validated on both builds 2026-08-09
 ffmpeg -nostdin -y -i in.mp4 -filter_complex \
-  "split[a][b];[b]lut3d='meu.cube'[g];[a][g]blend=all_mode=normal:all_opacity=0.7" \
+  "split[a][b];[b]lut3d='my.cube'[g];[a][g]blend=all_mode=normal:all_opacity=0.7" \
   -c:a copy out.mp4
 ```
 
-- LUT a 100% quase sempre exagera; **0,6-0,8 é a faixa útil**.
-- Corrija (branco/exposição) ANTES; o LUT é a última camada.
-- **Um LUT por vídeo.** Trocar entre cenas quebra a consistência, que é
-  justamente o que o grade deveria resolver.
-- Teste em frame com pele antes de rodar o vídeo inteiro.
+- A LUT at 100% almost always overdoes it; **0.6-0.8 is the useful range**.
+- Correct (white balance/exposure) FIRST; the LUT is the last layer.
+- **One LUT per video.** Switching between scenes breaks the consistency that
+  the grade was supposed to fix in the first place.
+- Test on a frame with skin before running the whole video.
 
-## Legenda queimada continua legível?
+## Are burned-in captions still readable?
 
-Grade escuro reduz o contraste do texto contra o fundo. Nossa legenda usa
-contorno preto, o que já protege bastante — mas depois de um grade tipo
-"sóbrio" (que levanta o preto pra 0.04) vale conferir num frame com legenda
-sobre a área mais clara do vídeo.
+A dark grade reduces the text's contrast against the background. Our captions
+use a black outline, which already protects a lot — but after a "muted"-style
+grade (which lifts black to 0.04) it's worth checking a frame with a caption
+over the brightest area of the video.
 
-Referência: 4.5:1 é o mínimo de contraste pra texto (WCAG AA). Na prática, a
-verificação honesta aqui é visual — extraia o frame e olhe.
+Reference: 4.5:1 is the minimum contrast for text (WCAG AA). In practice the
+honest check here is visual — extract the frame and look.
 
-## Fluxo recomendado
+## Recommended workflow
 
 ```bash
-# 1) frame de referência ANTES de gradear o vídeo todo (economiza render)
+# 1) reference frame BEFORE grading the whole video (saves a render)
 ffmpeg -nostdin -y -ss 10 -i IN.mp4 -frames:v 1 /tmp/before.png
 
-# 2) testa o grade no frame
+# 2) test the grade on the frame
 ffmpeg -nostdin -y -i /tmp/before.png -vf "<CHAIN>" /tmp/after.png
 
-# 3) OLHE os dois (Read). So depois roda o video inteiro.
-# 4) grade junto com legenda e formato = 1 encode so
+# 3) LOOK at both (Read). Only then run the whole video.
+# 4) grade together with captions and format = ONE encode
 ```
 
-Ajuste em passos pequenos (±0,05) e reveja. Grade bom é o que ninguém percebe.
+Adjust in small steps (±0.05) and re-check. A good grade is one nobody notices.

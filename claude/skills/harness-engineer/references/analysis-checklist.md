@@ -71,7 +71,7 @@ Teams carry standards in their heads that the repo only hints at. Asking is a fe
 - Are there coding guidelines written somewhere else (wiki, Notion, org handbook)?
 - Naming conventions and code-style preferences? Review rituals? Testing philosophy?
 - Who may commit/push — the agent or humans only? (the agent git policy)
-- Declared principles for the constitution ("TDD sempre", "zero-downtime migrations"...)
+- Declared principles for the constitution ("TDD always", "zero-downtime migrations"...)
 
 Everything declared enters tagged `[declared]`. If the team has no preference on a point, propose a sensible default marked `Recommended` — never present an invention as an observed standard.
 

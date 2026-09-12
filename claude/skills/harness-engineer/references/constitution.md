@@ -8,7 +8,7 @@ The constitution is the project's governance document: the principles and non-ne
 
 ## Derivation process
 
-1. **Collect explicit input.** If the user states principles ("TDD sempre", "zero downtime migrations", "accessibility obrigatória"), those enter as `[declared]`.
+1. **Collect explicit input.** If the user states principles ("TDD always", "zero downtime migrations", "accessibility is mandatory"), those enter as `[declared]`.
 2. **Infer from the repo.** Derive candidate principles from evidence: CI gates, lint configs, test patterns, PR templates, consistent code patterns. Each cites its evidence and enters as `[inferred]`.
 3. **Mine incidents.** Hotfix commits, rollbacks, post-mortem notes, and the user's war stories become Do-Not-Break entries with the incident cited.
 4. **Fill the template precisely.** No placeholder left unresolved; anything unresolvable becomes `To Confirm`, never a plausible invention.

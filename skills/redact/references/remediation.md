@@ -1,46 +1,46 @@
-# Remediação — Tirando o Segredo do Código
+# Remediation — Getting the Secret Out of the Code
 
-Ordem que nunca muda: **rotacionar → externalizar → limpar histórico → prevenir.**
+Order that never changes: **rotate → externalize → clean history → prevent.**
 
-Rotacionar primeiro porque, enquanto a chave antiga for válida, todo o resto é cosmético.
+Rotate first because, as long as the old key is valid, everything else is cosmetic.
 
 ---
 
-## 1. Rotacionar (antes de qualquer commit)
+## 1. Rotate (before any commit)
 
-| Serviço | Onde revogar/rotacionar |
+| Service | Where to revoke/rotate |
 |---|---|
-| AWS | IAM → Users → Security credentials → desativar e criar nova access key |
-| GCP | IAM → Service Accounts → Keys → deletar e gerar nova |
+| AWS | IAM → Users → Security credentials → deactivate and create a new access key |
+| GCP | IAM → Service Accounts → Keys → delete and generate a new one |
 | Azure | Storage account → Access keys → Rotate; App registrations → Certificates & secrets |
-| GitHub | Settings → Developer settings → PAT → Revoke; e Deploy keys do repo |
+| GitHub | Settings → Developer settings → PAT → Revoke; plus the repo's Deploy keys |
 | GitLab | Settings → Access Tokens → Revoke |
-| Stripe | Developers → API keys → Roll key (a antiga para na hora) |
-| OpenAI / Anthropic | Painel de API keys → revogar e criar nova |
+| Stripe | Developers → API keys → Roll key (the old one stops immediately) |
+| OpenAI / Anthropic | API keys dashboard → revoke and create a new one |
 | Slack | App config → OAuth & Permissions → Revoke / Regenerate |
 | SendGrid / Twilio | API keys → delete + create |
-| Banco de dados | `ALTER USER app_user WITH PASSWORD '...'` e atualizar quem consome |
-| Chave SSH | Gerar novo par, trocar em `authorized_keys`, remover a antiga |
-| JWT signing secret | Trocar o secret — invalida todos os tokens emitidos, planeje a virada |
+| Database | `ALTER USER app_user WITH PASSWORD '...'` and update every consumer |
+| SSH key | Generate a new pair, swap it in `authorized_keys`, remove the old one |
+| JWT signing secret | Change the secret — invalidates every issued token, plan the cutover |
 
-Depois de rotacionar, **verifique o uso da chave antiga** (CloudTrail, logs de acesso do
-provedor). Uso vindo de IP desconhecido = já foi explorada, vira incidente.
+After rotating, **check the old key's usage** (CloudTrail, the provider's access logs).
+Usage from an unknown IP = it was already exploited, it becomes an incident.
 
 ---
 
-## 2. Externalizar por stack
+## 2. Externalize per stack
 
 ### Spring Boot
 
 `application.properties`:
 ```properties
-# ERRADO
-spring.datasource.password=SenhaReal123
+# WRONG
+spring.datasource.password=RealPassword123
 
-# CERTO — obrigatória, quebra o boot se faltar
+# RIGHT — required, boot fails if missing
 spring.datasource.password=${DB_PASSWORD}
 
-# CERTO — com default só para dev local (nunca use default em prod)
+# RIGHT — with a default only for local dev (never use a default in prod)
 spring.datasource.password=${DB_PASSWORD:dev-only-local}
 ```
 
@@ -53,34 +53,34 @@ spring:
     password: ${DB_PASSWORD}
 ```
 
-Fornecendo os valores:
+Supplying the values:
 ```bash
 export DB_PASSWORD='...'
 java -jar app.jar
 
-# ou por argumento (aparece em `ps` — evite em máquina compartilhada)
+# or by argument (shows up in `ps` — avoid on shared machines)
 java -jar app.jar --spring.datasource.password="$DB_PASSWORD"
 
-# ou perfil separado, com o arquivo fora do git
+# or a separate profile, with the file kept out of git
 java -jar app.jar --spring.profiles.active=prod
 ```
 
-`application-prod.properties` deve estar no `.gitignore`. Versione
-`application-prod.properties.example` com as chaves vazias.
+`application-prod.properties` must be in `.gitignore`. Version
+`application-prod.properties.example` with the keys left empty.
 
 ### Node
 
 ```js
-// ERRADO
+// WRONG
 const stripe = require('stripe')('sk_live_51H8xQz...');
 
-// CERTO
+// RIGHT
 const key = process.env.STRIPE_KEY;
-if (!key) throw new Error('STRIPE_KEY não definida');
+if (!key) throw new Error('STRIPE_KEY is not set');
 const stripe = require('stripe')(key);
 ```
 
-Com dotenv em desenvolvimento (nunca em produção — lá as vars vêm do orquestrador):
+With dotenv in development (never in production — there the vars come from the orchestrator):
 ```js
 if (process.env.NODE_ENV !== 'production') require('dotenv').config();
 ```
@@ -90,39 +90,39 @@ if (process.env.NODE_ENV !== 'production') require('dotenv').config();
 ```python
 import os
 
-# obrigatória — falha alto e cedo
+# required — fails loudly and early
 DB_PASSWORD = os.environ["DB_PASSWORD"]
 
-# opcional com default
+# optional with a default
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
-# validação explícita no startup
+# explicit validation at startup
 required = ["DB_PASSWORD", "STRIPE_KEY"]
 missing = [k for k in required if not os.getenv(k)]
 if missing:
-    raise RuntimeError(f"Variáveis ausentes: {', '.join(missing)}")
+    raise RuntimeError(f"Missing variables: {', '.join(missing)}")
 ```
 
 ### Docker / Docker Compose
 
 ```yaml
-# ERRADO — valor literal, vai pro git
+# WRONG — literal value, goes into git
 services:
   api:
     environment:
-      - DB_PASSWORD=SenhaReal123
+      - DB_PASSWORD=RealPassword123
 
-# CERTO — arquivo fora do git
+# RIGHT — file kept out of git
 services:
   api:
     env_file:
       - .env
     environment:
-      - DB_HOST=db          # não-sensível pode ficar
+      - DB_HOST=db          # non-sensitive values can stay
 ```
 
-Nunca ponha secret em `ARG`/`ENV` do Dockerfile — fica gravado nas camadas da imagem e
-`docker history` revela. Use build secrets:
+Never put a secret in a Dockerfile `ARG`/`ENV` — it is baked into the image layers and
+`docker history` reveals it. Use build secrets:
 ```dockerfile
 RUN --mount=type=secret,id=npmtoken \
     NPM_TOKEN=$(cat /run/secrets/npmtoken) npm ci
@@ -130,84 +130,83 @@ RUN --mount=type=secret,id=npmtoken \
 
 ### CI/CD
 
-- **GitHub Actions:** Settings → Secrets and variables → Actions. Uso: `${{ secrets.NOME }}`.
-  Secret nunca aparece em log (o runner mascara), mas `echo` de valor derivado pode vazar.
-- **GitLab CI:** Settings → CI/CD → Variables, marcar *Masked* e *Protected*.
-- Nunca commitar `.github/workflows/*.yml` com token literal.
+- **GitHub Actions:** Settings → Secrets and variables → Actions. Usage: `${{ secrets.NAME }}`.
+  A secret never shows up in logs (the runner masks it), but an `echo` of a derived value can leak.
+- **GitLab CI:** Settings → CI/CD → Variables, mark *Masked* and *Protected*.
+- Never commit `.github/workflows/*.yml` with a literal token.
 
-### Secret manager (quando o projeto crescer)
+### Secret manager (when the project grows)
 
 AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, HashiCorp Vault, Doppler,
-Infisical. Vantagem sobre `.env`: rotação automática, auditoria de acesso, sem arquivo
-em disco. Para projeto pequeno de dois devs, `.env` + gerenciador de senhas compartilhado
-já resolve — não complique cedo demais.
+Infisical. Advantages over `.env`: automatic rotation, access auditing, no file on disk.
+For a small project with a couple of developers, `.env` + a shared password manager is
+enough — do not over-engineer too early.
 
 ---
 
-## 3. `.env.example` — o contrato
+## 3. `.env.example` — the contract
 
-Versionado, com as chaves e sem os valores. É como a outra pessoa sabe o que preencher.
+Versioned, with the keys and without the values. It is how the other person knows what to fill in.
 
 ```bash
-# .env.example  (COMMITAR)
-# Banco
+# .env.example  (COMMIT THIS)
+# Database
 DB_URL=jdbc:postgresql://localhost:5432/appdb
 DB_USER=
 DB_PASSWORD=
 
-# Integrações
+# Integrations
 STRIPE_KEY=
 OPENAI_API_KEY=
 
-# Opcional
+# Optional
 LOG_LEVEL=INFO
 ```
 
-Gerar a partir de um `.env` existente, sem levar os valores:
+Generate it from an existing `.env`, without carrying the values over:
 ```bash
 sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)=.*/\1=/' .env > .env.example
 ```
 
-Documente no README: copiar `.env.example` para `.env` e preencher.
+Document in the README: copy `.env.example` to `.env` and fill it in.
 
 ---
 
-## 4. Parar de rastrear o arquivo
+## 4. Stop tracking the file
 
-`.gitignore` **não** remove o que já está rastreado:
+`.gitignore` does **not** remove what is already tracked:
 
 ```bash
 git rm --cached .env
-git rm --cached -r config/secrets/     # diretório
+git rm --cached -r config/secrets/     # directory
 echo '.env' >> .gitignore
-git commit -m "chore: remove .env do versionamento"
+git commit -m "chore: stop tracking .env"
 ```
 
-Confirmar que saiu do índice mas continua em disco:
+Confirm it left the index but is still on disk:
 ```bash
-git ls-files | grep -i env      # não deve listar .env
-ls -la .env                     # deve existir localmente
+git ls-files | grep -i env      # must not list .env
+ls -la .env                     # must still exist locally
 ```
 
-Isso resolve o **presente**. O histórico continua tendo o arquivo — ver
-`history-rewrite.md`.
+This fixes the **present**. History still has the file — see `history-rewrite.md`.
 
 ---
 
-## 5. Verificação
+## 5. Verification
 
 ```bash
-# o segredo sumiu do working tree?
-git --no-pager grep -n 'SenhaReal123' || echo "limpo no working tree"
+# is the secret gone from the working tree?
+git --no-pager grep -n 'RealPassword123' || echo "clean in working tree"
 
-# e do histórico?
-git --no-pager log -S'SenhaReal123' --all --oneline || echo "limpo no historico"
+# and from history?
+git --no-pager log -S'RealPassword123' --all --oneline || echo "clean in history"
 
-# a app ainda sobe com a variável?
+# does the app still start with the variable?
 DB_PASSWORD='...' java -jar app.jar
 ```
 
-Rodar o scanner de novo fecha o ciclo:
+Running the scanner again closes the loop:
 ```bash
 python3 scripts/scan_secrets.py . --history
 ```

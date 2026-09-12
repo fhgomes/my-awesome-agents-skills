@@ -1,16 +1,17 @@
 ---
 name: ghost-content-pipeline
 description: >
-  Pipeline automatizado de criação, publicação e otimização de conteúdo no Ghost CMS.
-  Use SEMPRE que precisar: criar posts automaticamente, agendar publicações, melhorar posts 
-  existentes com SEO, gerar imagens para posts, distribuir conteúdo em redes sociais,
-  submeter para indexação (Google/Bing/IndexNow), monitorar performance de conteúdo,
-  fazer bulk operations em posts (atualizar tags, meta descriptions, feature images em massa),
-  criar content calendar, ou qualquer variação de "publicar no Ghost", "automatizar posts", 
-  "melhorar SEO dos posts", "criar conteúdo", "pipeline de conteúdo". Também acione quando 
-  o usuário mencionar: "cron job ghost", "auto publish", "content automation", "ghost posts", 
+  Automated pipeline for creating, publishing and optimizing content on Ghost CMS.
+  Use whenever you need to: create posts automatically, schedule publications, improve
+  existing posts for SEO, generate images for posts, distribute content to social networks,
+  submit URLs for indexing (Google/Bing/IndexNow), monitor content performance,
+  run bulk operations on posts (mass-update tags, meta descriptions, feature images),
+  build a content calendar, or any variation of "publish on Ghost", "automate posts",
+  "improve post SEO", "create content", "content pipeline". Also trigger when the user
+  mentions: "ghost cron job", "auto publish", "content automation", "ghost posts",
   "ghost SEO", "indexnow", "google indexing", "bulk update posts", "content calendar",
-  "repurpose content", "social media automation ghost".
+  "repurpose content", "social media automation ghost". Also triggers on the equivalent
+  phrases in other languages.
 metadata:
   openclaw:
     emoji: "📝"
@@ -23,31 +24,31 @@ metadata:
 
 # Ghost Content Pipeline
 
-Pipeline automatizado para criação, publicação, otimização e distribuição de conteúdo em Ghost CMS self-hosted. Projetado para rodar como cron jobs ou ser invocado por agentes.
+Automated pipeline for creating, publishing, optimizing and distributing content on a self-hosted Ghost CMS. Designed to run as cron jobs or to be invoked by agents.
 
-## Dependências
+## Dependencies
 
-### Obrigatórias
+### Required
 ```bash
-GHOST_URL=https://seu-ghost.com
+GHOST_URL=https://your-ghost.com
 GHOST_ADMIN_API_KEY=id:secret
 ```
 
-### Opcionais (por feature)
+### Optional (per feature)
 ```bash
 # SEO Research
 SERPER_API_KEY=xxx              # Google SERP data (serper.dev)
 
-# Indexação
+# Indexing
 GOOGLE_INDEXING_KEY_FILE=/path  # Google Indexing API service account
 INDEXNOW_KEY=xxx                # IndexNow API key
 
-# Geração de imagens
+# Image generation
 OPENAI_API_KEY=xxx              # DALL-E
 IDEOGRAM_API_KEY=xxx            # Ideogram
-# ou qualquer API de imagem configurada
+# or any other configured image API
 
-# Distribuição social
+# Social distribution
 TWITTER_BEARER_TOKEN=xxx        # X/Twitter API
 PINTEREST_TOKEN=xxx             # Pinterest API
 ```
@@ -59,140 +60,140 @@ cd $SKILL_DIR && npm install
 
 ## Workflows
 
-### 1. Criar e Publicar Post Novo
+### 1. Create and Publish a New Post
 
-Pipeline completo de criação de conteúdo:
+Full content-creation pipeline:
 
 ```
-1. Pesquisar tópico
-   → scripts/content-research.js --topic="tema" --check-competition
-   Saída: { keyword, difficulty, paa_questions[], related_topics[], existing_posts[] }
+1. Research the topic
+   → scripts/content-research.js --topic="topic" --check-competition
+   Output: { keyword, difficulty, paa_questions[], related_topics[], existing_posts[] }
 
-2. Verificar se já existe no site
-   → scripts/ghost-content-ops.js posts search --query="tema"
-   Se existe: abortar ou sugerir atualização
+2. Check whether it already exists on the site
+   → scripts/ghost-content-ops.js posts search --query="topic"
+   If it exists: abort or suggest an update
 
-3. Gerar conteúdo
-   → O agente (LLM) gera o HTML do post seguindo o template em references/post-template.md
-   Input: pesquisa do passo 1
+3. Generate the content
+   → The agent (LLM) generates the post HTML following the template in references/post-template.md
+   Input: research from step 1
    Output: { title, html, meta_title, meta_description, tags[], custom_excerpt }
 
-4. Gerar feature image (opcional)
+4. Generate a feature image (optional)
    → scripts/generate-image.js --prompt="..." --output=/tmp/feature.webp
    → scripts/ghost-content-ops.js images upload --file=/tmp/feature.webp
 
-5. Publicar
+5. Publish
    → scripts/ghost-content-ops.js posts create --json='{...}'
-   Status: "published" (imediato) ou "scheduled" com published_at
+   Status: "published" (immediate) or "scheduled" with published_at
 
-6. Submeter para indexação
-   → scripts/submit-indexing.js --url="https://seu-ghost.com/novo-post/"
+6. Submit for indexing
+   → scripts/submit-indexing.js --url="https://your-ghost.com/new-post/"
 
-7. Distribuir em redes sociais (opcional)
+7. Distribute on social networks (optional)
    → scripts/social-distribute.js --post-url="..." --platforms=twitter,pinterest
 ```
 
-### 2. Melhorar Post Existente (Content Improver)
+### 2. Improve an Existing Post (Content Improver)
 
-Para rodar como cron job, melhorando o post mais antigo a cada execução:
+To run as a cron job, improving the oldest post on each execution:
 
 ```
-1. Buscar post mais antigo/desatualizado
+1. Fetch the oldest / most outdated post
    → scripts/ghost-content-ops.js posts list --order=updated_at+asc --limit=1 --status=published
 
-2. Analisar qualidade atual
+2. Analyze current quality
    → scripts/content-analyzer.js --url="post-url" --check-seo --check-readability
-   Saída: { score, missing_h2s, missing_faq, word_count, missing_images, suggestions[] }
+   Output: { score, missing_h2s, missing_faq, word_count, missing_images, suggestions[] }
 
-3. Pesquisar dados frescos
+3. Research fresh data
    → scripts/content-research.js --topic="post-topic" --paa-only
-   Saída: { paa_questions[], fresh_data }
+   Output: { paa_questions[], fresh_data }
 
-4. Gerar versão melhorada (via LLM)
-   Regras: references/improvement-rules.md
-   - Manter URL/slug original
-   - Adicionar FAQ com PAA data real
-   - Melhorar estrutura de H2s
-   - Adicionar internal links
-   - Melhorar meta description
+4. Generate the improved version (via LLM)
+   Rules: references/improvement-rules.md
+   - Keep the original URL/slug
+   - Add an FAQ with real PAA data
+   - Improve the H2 structure
+   - Add internal links
+   - Improve the meta description
 
-5. Gerar novas imagens se necessário
+5. Generate new images if needed
    → scripts/generate-image.js + upload
 
-6. Atualizar post
+6. Update the post
    → scripts/ghost-content-ops.js posts update --id=xxx --json='{...}'
 
-7. Resubmeter para indexação
+7. Resubmit for indexing
    → scripts/submit-indexing.js --url="post-url"
 ```
 
 ### 3. Bulk Operations
 
-Para operações em massa em posts existentes:
+For mass operations on existing posts:
 
 ```
-# Atualizar meta descriptions de todos os posts sem meta
+# Update meta descriptions of every post that has none
 → scripts/ghost-content-ops.js posts list --filter="meta_description:null" --limit=all
-→ Para cada: gerar meta description via LLM → update
+→ For each: generate a meta description via LLM → update
 
-# Adicionar tag a posts por filtro
+# Add a tag to posts matching a filter
 → scripts/ghost-content-ops.js posts bulk-tag --filter="tag:-optimized" --add-tag="optimized"
 
-# Reprocessar todas as feature images para WebP
+# Reprocess every feature image to WebP
 → scripts/ghost-content-ops.js posts list --fields=id,feature_image --limit=all
-→ Para cada: baixar → converter WebP → re-upload → update post
+→ For each: download → convert to WebP → re-upload → update post
 
-# Gerar custom_excerpt para posts sem excerpt
+# Generate custom_excerpt for posts without an excerpt
 → scripts/ghost-content-ops.js posts list --filter="custom_excerpt:null" --limit=all
-→ Para cada: extrair primeiro parágrafo → gerar excerpt via LLM → update
+→ For each: extract the first paragraph → generate an excerpt via LLM → update
 ```
 
 ### 4. Content Calendar
 
-Planejamento e agendamento de conteúdo:
+Content planning and scheduling:
 
 ```
-1. Gerar calendario de tópicos
-   → scripts/content-research.js --generate-calendar --weeks=4 --niche="seu-nicho"
-   Saída: calendar.json com tópicos, datas, keywords
+1. Generate a topic calendar
+   → scripts/content-research.js --generate-calendar --weeks=4 --niche="your-niche"
+   Output: calendar.json with topics, dates, keywords
 
-2. Para cada item do calendário:
-   → Executar workflow "Criar e Publicar Post Novo"
-   → Usar status "scheduled" com published_at do calendário
+2. For each calendar item:
+   → Run the "Create and Publish a New Post" workflow
+   → Use status "scheduled" with the published_at from the calendar
 
-3. Monitorar publicações agendadas
+3. Monitor scheduled publications
    → scripts/ghost-content-ops.js posts list --status=scheduled --order=published_at+asc
 ```
 
-## Estrutura de Post Recomendada
+## Recommended Post Structure
 
-Ver `references/post-template.md` para o template completo. Resumo:
+See `references/post-template.md` for the full template. Summary (headings shown in English — localize them to the blog's language):
 
 ```html
 <!-- Answer Capsule (featured snippet bait) -->
 <div class="answer-capsule">
-  <p><strong>Resposta rápida:</strong> ...</p>
+  <p><strong>Quick answer:</strong> ...</p>
 </div>
 
-<!-- H2s como perguntas reais do usuário -->
-<h2>O que é [tópico]?</h2>
+<!-- H2s written as real user questions -->
+<h2>What is [topic]?</h2>
 <p>...</p>
 
-<h2>Como [ação] funciona?</h2>
+<h2>How does [action] work?</h2>
 <p>...</p>
 
-<!-- Tabela comparativa -->
+<!-- Comparison table -->
 <table>...</table>
 
-<!-- FAQ com PAA data real -->
-<h2>Perguntas Frequentes</h2>
-<h3>Pergunta real do Google PAA?</h3>
-<p>Resposta...</p>
+<!-- FAQ with real PAA data -->
+<h2>Frequently Asked Questions</h2>
+<h3>Real question from Google PAA?</h3>
+<p>Answer...</p>
 
 <!-- Internal links -->
-<h2>Leia também</h2>
+<h2>Read also</h2>
 <ul>
-  <li><a href="/post-relacionado/">Título</a></li>
+  <li><a href="/related-post/">Title</a></li>
 </ul>
 ```
 
@@ -203,31 +204,31 @@ Content ops scripts import JWT/HTTP utilities from the selfhost-admin shared lib
 require('../../ghost-selfhost-admin/lib/ghost-api')
 ```
 
-## Referências
+## References
 
-- Template de post otimizado → `references/post-template.md`
-- Regras de melhoria de conteúdo → `references/improvement-rules.md`
-- Configuração de cron jobs → `references/cron-setup.md`
+- SEO-optimized post template → `references/post-template.md`
+- Content improvement rules → `references/improvement-rules.md`
+- Cron job setup → `references/cron-setup.md`
 - Ghost Admin API reference → `../ghost-selfhost-admin/references/ghost-admin-api.md`
 
-## Integração com Celebrity Dev Agent Team
+## Integration with the Celebrity Dev Agent Team
 
-Este skill é o motor do **Content Pipeline sub-team** do Celebrity Dev:
-- **Topic Scout** usa `content-research.js` para descobrir tópicos
-- **SEO Optimizer** usa `content-analyzer.js` para audit e melhorias
-- **Long-form/Short-form Draft Writers** produzem conteúdo seguindo `post-template.md`
-- **Repurposer** usa `social-distribute.js` para distribuição
-- **Visual Director** usa `generate-image.js` para assets visuais
+This skill is the engine of the Celebrity Dev **Content Pipeline sub-team**:
+- **Topic Scout** uses `content-research.js` to discover topics
+- **SEO Optimizer** uses `content-analyzer.js` for audits and improvements
+- **Long-form/Short-form Draft Writers** produce content following `post-template.md`
+- **Repurposer** uses `social-distribute.js` for distribution
+- **Visual Director** uses `generate-image.js` for visual assets
 
-O Brand Voice Guardian e Content Strategist (Claude API) validam o output antes de publicar.
+The Brand Voice Guardian and Content Strategist (Claude API) validate the output before publishing.
 
-## Regras de Ouro
+## Golden Rules
 
-1. **Nunca publicar sem revisar** — drafts primeiro, publish depois de validação
-2. **PAA data real, não inventada** — usar Serper/SERP API para FAQs
-3. **Imagens otimizadas** — sempre WebP, max 1280px, < 200KB
-4. **Internal linking** — todo post deve linkar para pelo menos 2 posts relacionados
-5. **updated_at obrigatório** — Ghost requer para conflict detection em updates
-6. **Rate limit social** — respeitar limites das APIs de redes sociais
-7. **Monitorar indexação** — verificar se posts foram indexados após submissão
-8. **Backup antes de bulk ops** — exportar content antes de operações em massa
+1. **Never publish without review** — drafts first, publish after validation
+2. **Real PAA data, never invented** — use Serper/SERP API for FAQs
+3. **Optimized images** — always WebP, max 1280px, < 200KB
+4. **Internal linking** — every post must link to at least 2 related posts
+5. **updated_at is mandatory** — Ghost requires it for conflict detection on updates
+6. **Social rate limits** — respect the limits of the social network APIs
+7. **Monitor indexing** — check that posts were indexed after submission
+8. **Backup before bulk ops** — export content before mass operations

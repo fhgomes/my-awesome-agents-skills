@@ -1,109 +1,110 @@
-# Escolher QUAL trecho vira corte (rubrica de scoring)
+# Choosing WHICH segment becomes a clip (scoring rubric)
 
-Adaptado de `claude-shorts` (MIT) + sinais do `clipify` (MIT). Serve pra quando
-o pedido é "acha os melhores momentos desse vídeo" em vez de "corta de X a Y".
+Adapted from `claude-shorts` (MIT) + signals from `clipify` (MIT). For when the
+request is "find the best moments in this video" rather than "cut from X to Y".
 
-Use com o JSON word-level que a skill já gera (`word_captions_map.py
---words-json`) — os mesmos timestamps que planejam o corte com fronteira exata
-de palavra (regra 6 da SKILL.md).
+Use it with the word-level JSON the skill already produces (`word_captions_map.py
+--words-json`) — the same timestamps that plan the cut on exact word
+boundaries (rule 6 of SKILL.md).
 
-## As 5 dimensões (0-100 cada)
+## The 5 dimensions (0-100 each)
 
 ```
-score = hook*0.30 + coerencia*0.25 + emocao*0.20 + valor*0.15 + payoff*0.10
+score = hook*0.30 + coherence*0.25 + emotion*0.20 + value*0.15 + payoff*0.10
 ```
 
-### 1. Hook — os 3 primeiros segundos (peso 0.30)
+### 1. Hook — the first 3 seconds (weight 0.30)
 
-| Arquétipo | Exemplo | Faixa |
+| Archetype | Example | Range |
 |---|---|---|
-| Contrarian | "Tudo que te falaram sobre X está errado" | 80-100 |
-| Curiosity gap | "Tem uma coisa que ninguém te conta sobre..." | 75-95 |
-| Promessa de valor | "O framework exato que usei pra..." | 70-90 |
-| Pattern interrupt | "Peraí, deixa eu te mostrar uma coisa" | 70-90 |
-| Preview do payoff | "No fim disso você vai saber..." | 65-85 |
-| Começo em movimento | [entra no meio da frase, com energia] | 60-80 |
-| Genérico | "Então hoje eu quero falar sobre..." | 10-40 |
+| Contrarian | "Everything you've been told about X is wrong" | 80-100 |
+| Curiosity gap | "There's one thing nobody tells you about..." | 75-95 |
+| Value promise | "The exact framework I used to..." | 70-90 |
+| Pattern interrupt | "Wait, let me show you something" | 70-90 |
+| Payoff preview | "By the end of this you'll know..." | 65-85 |
+| Starts mid-motion | [enters mid-sentence, with energy] | 60-80 |
+| Generic | "So today I want to talk about..." | 10-40 |
 
-Bônus (+5-10 cada): número específico ("3 passos", "R$50 mil"), nome
-reconhecível (pessoa/empresa/ferramenta), experiência própria ("eu testei").
+Bonus (+5-10 each): a specific number ("3 steps", "$50k"), a recognizable
+name (person/company/tool), first-hand experience ("I tested it").
 
-### 2. Coerência standalone (peso 0.25)
+### 2. Standalone coherence (weight 0.25)
 
-Tem que fazer sentido pra quem NÃO viu o resto.
+It has to make sense to someone who has NOT seen the rest.
 
-| Critério | Score |
+| Criterion | Score |
 |---|---|
-| Arco completo (setup → desenvolvimento → resolução) | 85-100 |
-| Ideia completa com lacuna que dá pra inferir | 65-84 |
-| Referencia conteúdo anterior ("como eu disse") | 40-64 |
-| Precisa do contexto anterior pra entender | 10-39 |
-| Fragmento — começa ou termina no meio | 0-9 |
+| Complete arc (setup → development → resolution) | 85-100 |
+| Complete idea with a gap the viewer can infer | 65-84 |
+| References earlier content ("as I said") | 40-64 |
+| Needs the earlier context to be understood | 10-39 |
+| Fragment — starts or ends mid-thought | 0-9 |
 
-**Red flags (score baixo automático)**: "como eu falei antes", "voltando
-àquele ponto", pronome sem referente ("ele disse que..."), corte no meio da
-frase no fim.
+**Red flags (automatic low score)**: "as I said before", "going back to
+that point", a pronoun with no referent ("he said that..."), a cut in the
+middle of a sentence at the end.
 
-### 3. Intensidade emocional (peso 0.20)
+### 3. Emotional intensity (weight 0.20)
 
-| Sinal | Faixa |
+| Signal | Range |
 |---|---|
-| Desabafo/opinião forte com convicção | 80-100 |
-| Revelação surpreendente / virada | 75-95 |
-| Humor genuíno / risada | 70-90 |
-| Vulnerabilidade / história de fracasso honesta | 70-90 |
-| Explicação entusiasmada de algo fascinante | 60-80 |
-| Observação calma mas perspicaz | 40-60 |
-| Recitação monótona de fatos | 10-30 |
+| Rant / strong opinion delivered with conviction | 80-100 |
+| Surprising reveal / twist | 75-95 |
+| Genuine humor / laughter | 70-90 |
+| Vulnerability / honest failure story | 70-90 |
+| Enthusiastic explanation of something fascinating | 60-80 |
+| Calm but sharp observation | 40-60 |
+| Monotone recitation of facts | 10-30 |
 
-### 4. Densidade de valor (peso 0.15)
+### 4. Value density (weight 0.15)
 
-| Tipo | Faixa |
+| Type | Range |
 |---|---|
-| Passo a passo / método exato | 80-100 |
-| Framework / modelo mental com exemplo | 75-95 |
-| Dado específico / achado de pesquisa | 70-90 |
-| Insight contra-intuitivo explicado | 65-85 |
-| Conselho geral com algum específico | 40-60 |
-| Platitude ("trabalhe mais", "seja consistente") | 10-30 |
+| Step by step / exact method | 80-100 |
+| Framework / mental model with an example | 75-95 |
+| Specific data point / research finding | 70-90 |
+| Counter-intuitive insight, explained | 65-85 |
+| General advice with some specifics | 40-60 |
+| Platitude ("work harder", "be consistent") | 10-30 |
 
-Penalize se >30% do tempo for filler, repetição ou tangente.
+Penalize if >30% of the time is filler, repetition or tangent.
 
-### 5. Payoff — como termina (peso 0.10)
+### 5. Payoff — how it ends (weight 0.10)
 
-| Final | Faixa |
+| Ending | Range |
 |---|---|
-| Punchline / revelação satisfatória | 85-100 |
-| CTA claro com próximo passo | 75-90 |
-| Pensamento completo, parada natural | 65-80 |
-| Dissolve no próximo assunto (dá pra cortar limpo) | 40-60 |
-| Corta no meio / sem resolução | 10-30 |
+| Punchline / satisfying reveal | 85-100 |
+| Clear CTA with a next step | 75-90 |
+| Complete thought, natural stop | 65-80 |
+| Dissolves into the next topic (can be cut cleanly) | 40-60 |
+| Cuts mid-thought / no resolution | 10-30 |
 
-## Regras de seleção
+## Selection rules
 
-1. Mirar **8-12 candidatos** num vídeo de 30-60 min
-2. **Duração**: 15-55s (pico de engajamento em 25-40s)
-3. **Corte mínimo: 60.** Abaixo disso, pula
-4. **Diversidade**: não escolher 5 trechos do mesmo subtema
-5. **Espaçamento**: preferir trechos a ≥2 min de distância no original
-6. **Fronteira**: alinhar início/fim em fronteira de frase, nunca no meio da
-   palavra — usar o `--words-json` pra pegar o start real (armadilha da regra 6:
-   palavra esticada na fronteira)
+1. Aim for **8-12 candidates** in a 30-60 min video
+2. **Duration**: 15-55s (engagement peaks at 25-40s)
+3. **Minimum cutoff: 60.** Below that, skip it
+4. **Diversity**: don't pick 5 segments from the same subtopic
+5. **Spacing**: prefer segments ≥2 min apart in the original
+6. **Boundaries**: align start/end on sentence boundaries, never mid-word —
+   use the `--words-json` to get the real start (the rule 6 trap: a word
+   stretched across the boundary)
 
-## Sinais mecânicos (baratos, rodam antes do LLM ler)
+## Mechanical signals (cheap; run before the LLM reads anything)
 
-Do `clipify` — servem pra pré-filtrar e reduzir o que o modelo precisa ler:
+From `clipify` — they pre-filter and reduce what the model has to read:
 
-- **Picos de áudio**: `ffmpeg -af volumedetect` ou alternância rápida de
-  segmentos curtos do Whisper (bate-papo/reação)
-- **Risada**: "haha", "kkk", palavrão, "não acredito", "caraca"
-- **Pausa awkward**: gap longo entre segmentos do Whisper
-- **Reversão**: pergunta no setup → resposta inesperada
-- **One-liner citável**: frase declarativa curta que se sustenta sozinha
+- **Audio peaks**: `ffmpeg -af volumedetect`, or rapid alternation of short
+  Whisper segments (banter/reaction)
+- **Laughter**: "haha", "lol", swearing, "no way", "I can't believe it"
+- **Awkward pause**: long gap between Whisper segments
+- **Reversal**: question in the setup → unexpected answer
+- **Quotable one-liner**: short declarative sentence that stands on its own
 
-## Texto de hook (overlay dos primeiros ~3,5s)
+## Hook text (overlay for the first ~3.5s)
 
-- **Linha 1**: 4-8 palavras, a afirmação que segura o scroll
-- **Linha 2**: 3-6 palavras, contexto
-- ⚠️ **NÃO** repetir as primeiras palavras faladas — o overlay complementa o
-  áudio, não duplica. Combina com o punch-in da receita de transição.
+- **Line 1**: 4-8 words, the claim that stops the scroll
+- **Line 2**: 3-6 words, context
+- ⚠️ Do **NOT** repeat the first spoken words — the overlay complements the
+  audio, it doesn't duplicate it. Pairs with the punch-in from the transition
+  recipe.

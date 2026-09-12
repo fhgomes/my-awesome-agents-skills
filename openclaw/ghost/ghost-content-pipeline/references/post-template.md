@@ -1,135 +1,140 @@
-# Template de Post Otimizado para SEO
+# SEO-Optimized Post Template
 
-## Estrutura HTML
+> The headings, labels and placeholders below are written in English. When the blog
+> publishes in another language, localize every visible string (headings such as
+> "In short", "Frequently Asked Questions", "Read also", "Conclusion", table headers,
+> and the title formats) to the blog's language — the structure stays the same.
+
+## HTML Structure
 
 ```html
 <!--
-  Meta fields (set via API, não no HTML):
-  - meta_title: max 60 chars, inclui keyword principal
-  - meta_description: max 155 chars, CTA ou benefício claro
-  - og_title, og_description: podem ser diferentes do meta
-  - twitter_title, twitter_description: idem
-  - custom_excerpt: 1-2 frases, resumo do post
-  - feature_image: URL da imagem principal (1200x630px ideal)
+  Meta fields (set via API, not in the HTML):
+  - meta_title: max 60 chars, includes the primary keyword
+  - meta_description: max 155 chars, CTA or clear benefit
+  - og_title, og_description: may differ from the meta fields
+  - twitter_title, twitter_description: same
+  - custom_excerpt: 1-2 sentences, summary of the post
+  - feature_image: URL of the main image (1200x630px ideal)
 -->
 
 <!-- ANSWER CAPSULE — Featured Snippet bait -->
 <blockquote>
-  <p><strong>Em resumo:</strong> [Resposta direta à pergunta principal em 2-3 frases.
-  Isso aumenta chances de aparecer como featured snippet no Google.]</p>
+  <p><strong>In short:</strong> [Direct answer to the main question in 2-3 sentences.
+  This increases the chance of appearing as a featured snippet on Google.]</p>
 </blockquote>
 
-<!-- INTRODUÇÃO — Hook + contexto -->
-<p>[1-2 parágrafos. Começar com gancho que gera curiosidade. 
-Mencionar a keyword principal naturalmente. 
-Estabelecer autoridade/credibilidade.]</p>
+<!-- INTRODUCTION — Hook + context -->
+<p>[1-2 paragraphs. Open with a hook that sparks curiosity.
+Mention the primary keyword naturally.
+Establish authority/credibility.]</p>
 
-<!-- SEÇÃO PRINCIPAL — H2s como perguntas -->
-<h2>O que é [tópico]?</h2>
-<p>[Explicação clara. Usar linguagem acessível. 
-Incluir dados/estatísticas se disponíveis.]</p>
+<!-- MAIN SECTION — H2s as questions -->
+<h2>What is [topic]?</h2>
+<p>[Clear explanation. Use accessible language.
+Include data/statistics if available.]</p>
 
-<h2>Como [ação principal] funciona?</h2>
-<p>[Passo a passo ou explicação detalhada.]</p>
+<h2>How does [main action] work?</h2>
+<p>[Step by step or detailed explanation.]</p>
 
-<!-- IMAGEM CONTEXTUAL -->
+<!-- CONTEXTUAL IMAGE -->
 <figure>
-  <img src="[url-da-imagem]" alt="[descrição detalhada para acessibilidade]" />
-  <figcaption>[Legenda descritiva]</figcaption>
+  <img src="[image-url]" alt="[detailed description for accessibility]" />
+  <figcaption>[Descriptive caption]</figcaption>
 </figure>
 
-<h2>Por que [benefício] é importante?</h2>
-<p>[Conectar com dor/necessidade do leitor.]</p>
+<h2>Why is [benefit] important?</h2>
+<p>[Connect with the reader's pain/need.]</p>
 
-<!-- TABELA COMPARATIVA (quando aplicável) -->
-<h2>[Tópico A] vs [Tópico B]: Comparação</h2>
+<!-- COMPARISON TABLE (when applicable) -->
+<h2>[Topic A] vs [Topic B]: Comparison</h2>
 <table>
   <thead>
     <tr>
-      <th>Aspecto</th>
-      <th>[Tópico A]</th>
-      <th>[Tópico B]</th>
+      <th>Aspect</th>
+      <th>[Topic A]</th>
+      <th>[Topic B]</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>[Critério 1]</td>
-      <td>[Valor]</td>
-      <td>[Valor]</td>
+      <td>[Criterion 1]</td>
+      <td>[Value]</td>
+      <td>[Value]</td>
     </tr>
-    <!-- mais linhas -->
+    <!-- more rows -->
   </tbody>
 </table>
 
-<!-- SEÇÃO PRÁTICA — How-to ou dicas -->
-<h2>Como [fazer a coisa]? Guia passo a passo</h2>
+<!-- PRACTICAL SECTION — How-to or tips -->
+<h2>How to [do the thing]? Step-by-step guide</h2>
 <ol>
-  <li><strong>[Passo 1]:</strong> [Descrição]</li>
-  <li><strong>[Passo 2]:</strong> [Descrição]</li>
-  <li><strong>[Passo 3]:</strong> [Descrição]</li>
+  <li><strong>[Step 1]:</strong> [Description]</li>
+  <li><strong>[Step 2]:</strong> [Description]</li>
+  <li><strong>[Step 3]:</strong> [Description]</li>
 </ol>
 
-<!-- FAQ — Baseado em PAA real do Google -->
-<h2>Perguntas Frequentes</h2>
+<!-- FAQ — Based on real Google PAA -->
+<h2>Frequently Asked Questions</h2>
 
-<h3>[Pergunta real do Google PAA 1]?</h3>
-<p>[Resposta direta, 2-4 frases.]</p>
+<h3>[Real Google PAA question 1]?</h3>
+<p>[Direct answer, 2-4 sentences.]</p>
 
-<h3>[Pergunta real do Google PAA 2]?</h3>
-<p>[Resposta direta, 2-4 frases.]</p>
+<h3>[Real Google PAA question 2]?</h3>
+<p>[Direct answer, 2-4 sentences.]</p>
 
-<h3>[Pergunta real do Google PAA 3]?</h3>
-<p>[Resposta direta, 2-4 frases.]</p>
+<h3>[Real Google PAA question 3]?</h3>
+<p>[Direct answer, 2-4 sentences.]</p>
 
-<!-- Repetir para 5-10 FAQs -->
+<!-- Repeat for 5-10 FAQs -->
 
 <!-- INTERNAL LINKS -->
-<h2>Leia também</h2>
+<h2>Read also</h2>
 <ul>
-  <li><a href="/post-relacionado-1/">Título do post relacionado 1</a></li>
-  <li><a href="/post-relacionado-2/">Título do post relacionado 2</a></li>
-  <li><a href="/post-relacionado-3/">Título do post relacionado 3</a></li>
+  <li><a href="/related-post-1/">Title of related post 1</a></li>
+  <li><a href="/related-post-2/">Title of related post 2</a></li>
+  <li><a href="/related-post-3/">Title of related post 3</a></li>
 </ul>
 
-<!-- CONCLUSÃO -->
-<h2>Conclusão</h2>
-<p>[Resumo dos pontos principais. CTA claro — o que o leitor deve fazer agora?]</p>
+<!-- CONCLUSION -->
+<h2>Conclusion</h2>
+<p>[Summary of the main points. Clear CTA — what should the reader do now?]</p>
 ```
 
-## Regras de Qualidade
+## Quality Rules
 
-### Título (H1)
-- Max 60 caracteres
-- Inclui keyword principal
-- Formato preferido: "Como [fazer X]: Guia Completo [ano]" ou "O que é [X]? Tudo que você precisa saber"
+### Title (H1)
+- Max 60 characters
+- Includes the primary keyword
+- Preferred formats (localize to the blog's language): "How to [do X]: Complete Guide [year]" or "What is [X]? Everything you need to know"
 
-### Corpo
-- Mínimo 1500 palavras para posts pillar
-- Mínimo 800 palavras para posts regulares
-- H2s escritos como perguntas reais do usuário
-- Parágrafos curtos (3-4 frases max)
-- Usar listas quando apropriado
-- Pelo menos 1 tabela comparativa se o tópico permitir
+### Body
+- Minimum 1500 words for pillar posts
+- Minimum 800 words for regular posts
+- H2s written as real user questions
+- Short paragraphs (3-4 sentences max)
+- Use lists where appropriate
+- At least 1 comparison table if the topic allows
 
-### Imagens
-- Feature image: 1200x630px (OG padrão)
-- Formato: WebP preferível, < 200KB
-- Alt text descritivo em todas as imagens
-- Pelo menos 2 imagens por post de 1500+ palavras
+### Images
+- Feature image: 1200x630px (OG standard)
+- Format: WebP preferred, < 200KB
+- Descriptive alt text on every image
+- At least 2 images per 1500+ word post
 
 ### SEO
-- Keyword principal no título, primeiro parágrafo, e 1-2 H2s
-- Meta description com CTA (max 155 chars)
-- Custom excerpt diferente da meta description
-- URLs curtas e descritivas (slug)
+- Primary keyword in the title, first paragraph, and 1-2 H2s
+- Meta description with a CTA (max 155 chars)
+- Custom excerpt different from the meta description
+- Short, descriptive URLs (slug)
 
 ### Internal Linking
-- Mínimo 2 internal links por post
-- Links em contexto relevante, não só no final
-- Anchor text descritivo (não "clique aqui")
+- Minimum 2 internal links per post
+- Links in relevant context, not only at the end
+- Descriptive anchor text (not "click here")
 
 ### E-E-A-T Signals
-- Autor nomeado
-- Voz em primeira pessoa quando apropriado
-- Dados/fontes citados quando disponíveis
-- Data de publicação e última atualização visíveis
+- Named author
+- First-person voice where appropriate
+- Data/sources cited when available
+- Publication date and last-updated date visible

@@ -1,65 +1,65 @@
-# Triagem de URL, Domínio e Phishing
+# URL, Domain and Phishing Triage
 
-## Regra de navegação
+## Browsing rule
 
-- **Nunca** abrir URL suspeita no Chrome real do usuário (`mcp__claude-in-chrome__*`).
-  Cookies de sessão, senhas salvas e perfil logado ficam expostos, e drive-by download
-  cai direto na máquina.
-- Se for realmente necessário renderizar, usar o Browser interno (`mcp__Claude_Browser__*`),
-  que é isolado do perfil real.
-- Preferência sempre: inspecionar por HTTP sem renderizar.
-- **Nunca** canalizar resposta pra shell (`curl ... | bash`), nem baixar e executar.
+- **Never** open a suspicious URL in the user's real browser (e.g. `mcp__claude-in-chrome__*`).
+  Session cookies, saved passwords and the logged-in profile get exposed, and a drive-by
+  download lands straight on the machine.
+- If rendering is truly necessary, use an isolated browser (e.g. `mcp__Claude_Browser__*`),
+  separate from the real profile.
+- Always prefer: inspect over HTTP without rendering.
+- **Never** pipe a response into a shell (`curl ... | bash`), nor download and execute.
 
 ---
 
-## Passo 1 — Decompor a URL antes de tocar nela
+## Step 1 — Decompose the URL before touching it
 
 ```
 https://login.microsoft.com.secure-verify[.]ru/auth?redirect=...
-        └────── isca ──────┘└─ domínio real ─┘
+        └────── lure ──────┘└─ real domain ─┘
 ```
 
-O domínio real é sempre o que vem **imediatamente antes do TLD**. Tudo à esquerda é
-subdomínio e pode dizer qualquer coisa.
+The real domain is always what comes **immediately before the TLD**. Everything to the left
+is a subdomain and can say anything.
 
-Verifique:
-- Domínio registrável real (eTLD+1) vs. marca alegada
-- Homoglifos e typosquatting: `rnicrosoft` (rn≈m), `goog1e`, `paypaI` (I maiúsculo),
+Check:
+- Real registrable domain (eTLD+1) vs. claimed brand
+- Homoglyphs and typosquatting: `rnicrosoft` (rn≈m), `goog1e`, `paypaI` (capital I),
   `arnazon`, punycode `xn--`
-- TLD que imita extensão de arquivo: `.zip`, `.mov`
-- TLD de alto abuso quando combinado com marca conhecida: `.ru`, `.cn`, `.tk`, `.xyz`, `.top`, `.icu`
-- Domínio hospedeiro genérico servindo marca: `*.web.app`, `*.pages.dev`, `*.workers.dev`,
+- TLD mimicking a file extension: `.zip`, `.mov`
+- High-abuse TLD combined with a known brand: `.ru`, `.cn`, `.tk`, `.xyz`, `.top`, `.icu`
+- Generic hosting domain serving a brand: `*.web.app`, `*.pages.dev`, `*.workers.dev`,
   `*.r2.dev`, `*.blob.core.windows.net`, `*.ngrok-free.app`, `*.duckdns.org`
-- Credencial embutida: `https://apple.com@evil.ru/` — o host é `evil.ru`
-- Porta não padrão (`:8080`, `:4444`) num link que se diz de banco/empresa
-- IP puro no lugar de domínio
-- Encurtador (`bit.ly`, `t.co`, `is.gd`, `cutt.ly`, `tinyurl`) escondendo destino
+- Embedded credential: `https://apple.com@evil.ru/` — the host is `evil.ru`
+- Non-standard port (`:8080`, `:4444`) on a link claiming to be a bank/company
+- Bare IP instead of a domain
+- URL shortener (`bit.ly`, `t.co`, `is.gd`, `cutt.ly`, `tinyurl`) hiding the destination
 
 ---
 
-## Passo 2 — Cabeçalhos e cadeia de redirect (sem baixar corpo)
+## Step 2 — Headers and redirect chain (without downloading the body)
 
 ```bash
 curl -sSIL --max-time 15 -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' 'URL' \
   | grep -iE '^HTTP/|^location:|^content-type:|^content-disposition:|^content-length:|^server:'
 ```
 
-Ler:
-- Cada `Location:` da cadeia — para onde o link realmente leva
-- `Content-Type: application/octet-stream` ou `application/x-msdownload` num "link de página"
-- `Content-Disposition: attachment; filename=...` — é download, não página
-- Redirect que muda de domínio duas ou mais vezes até cair em host desconhecido
-- Cloaking: resposta diferente para User-Agent de bot vs. browser (compare os dois)
+Read:
+- Each `Location:` in the chain — where the link really leads
+- `Content-Type: application/octet-stream` or `application/x-msdownload` on a "page link"
+- `Content-Disposition: attachment; filename=...` — it is a download, not a page
+- Redirect that changes domain two or more times before landing on an unknown host
+- Cloaking: different response for a bot User-Agent vs. a browser (compare both)
 
 ```bash
-# comparar comportamento por User-Agent (sinal de cloaking)
+# compare behavior by User-Agent (cloaking signal)
 curl -sSI --max-time 10 -A 'curl/8' 'URL' | head -1
 curl -sSI --max-time 10 -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' 'URL' | head -1
 ```
 
 ---
 
-## Passo 3 — Corpo como texto, limitado
+## Step 3 — Body as text, limited
 
 ```bash
 curl -sS --max-time 20 --max-filesize 2000000 -A 'Mozilla/5.0' 'URL' > /tmp/page.html
@@ -69,103 +69,105 @@ grep -oiE 'src="[^"]*"|href="[^"]*"' /tmp/page.html | sort -u | head -40
 grep -icE 'atob\(|eval\(|fromCharCode|unescape\(|document\.write' /tmp/page.html
 ```
 
-Sinais de alerta na página:
-- `<form action=` apontando pra domínio diferente do da página, com campo `password`
-- Página de login pixel-perfeita de marca conhecida num domínio que não é o da marca
-- JS pesadamente ofuscado num site institucional simples
-- `<iframe>` invisível carregando terceiro domínio
-- Meta refresh imediato pra outro host
-- Kit de phishing: pasta com `index.html` + `post.php` + logo da marca
+Red flags in the page:
+- `<form action=` pointing to a domain different from the page's, with a `password` field
+- Pixel-perfect login page of a known brand on a domain that is not the brand's
+- Heavily obfuscated JS on a simple institutional site
+- Invisible `<iframe>` loading a third-party domain
+- Immediate meta refresh to another host
+- Phishing kit: folder with `index.html` + `post.php` + the brand's logo
 
 ---
 
-## Passo 4 — Idade e reputação do domínio
+## Step 4 — Domain age and reputation
 
-Domínio registrado há poucos dias é o indicador isolado mais forte de phishing.
+A domain registered a few days ago is the strongest single indicator of phishing.
 
 ```bash
-whois dominio.com 2>/dev/null | grep -iE 'creation|created|registrar|registrant|expiry'
+whois domain.com 2>/dev/null | grep -iE 'creation|created|registrar|registrant|expiry'
 ```
 
-(`whois` pode não existir no Git Bash — nesse caso use o WSL ou diga que não pôde verificar.)
+(`whois` may not be available in every shell, e.g. Git Bash on Windows — in that case use
+WSL/another host, or say you could not verify.)
 
 ```bash
-nslookup dominio.com
-nslookup -type=MX dominio.com     # domínio de phishing costuma não ter MX real
+nslookup domain.com
+nslookup -type=MX domain.com     # phishing domains usually have no real MX
 ```
 
-- Criado nos últimos 30 dias + imita marca = MALICIOUS com alta confiança
-- Registrar com privacidade + domínio novo + certificado emitido no mesmo dia = kit de phishing
-- Certificado TLS válido **não** significa nada: Let's Encrypt é gratuito e automático.
-  Cadeado ≠ seguro. Diga isso ao usuário se ele mencionar "mas tem cadeado".
+- Created in the last 30 days + imitates a brand = MALICIOUS with high confidence
+- Privacy-protected registrar + new domain + certificate issued the same day = phishing kit
+- A valid TLS certificate means **nothing**: Let's Encrypt is free and automatic.
+  Padlock ≠ safe. Tell the user this if they mention "but it has the padlock".
 
 ---
 
-## Passo 5 — Consulta externa (com autorização)
+## Step 5 — External lookup (with authorization)
 
-Enviar hash/URL a serviço externo é ação outward-facing. **Pergunte antes.**
-- Submeter uma URL ao VirusTotal a torna pública e pode alertar o operador do site.
-- Submeter arquivo publica o conteúdo — nunca faça com amostra que possa ter dado sensível.
+Sending a hash/URL to an external service is an outward-facing action. **Ask first.**
+- Submitting a URL to VirusTotal makes it public and may tip off the site's operator.
+- Submitting a file publishes its content — never do it with a sample that may contain sensitive data.
 
-Sem consulta externa, ainda dá pra dar veredito sólido com os passos 1-4 — só declare o
-escopo ("análise local, sem consulta a reputação externa").
-
----
-
-## Padrões de golpe por categoria
-
-**Phishing de credencial** — página de login clonada, form postando pra outro host,
-urgência ("sua conta será suspensa em 24h"), domínio novo.
-
-**Fake update / ClickFix** — página diz que o navegador/Chrome/Flash precisa atualizar, ou
-manda o usuário colar um comando no PowerShell/Win+R "para verificar que é humano".
-**Qualquer site pedindo pra colar comando no terminal é ataque.** Sem exceção.
-
-**Fake CAPTCHA** — "prove que é humano" seguido de instrução pra apertar Win+R e colar.
-Mesma família do ClickFix.
-
-**Suporte técnico falso** — pop-up travado em tela cheia com número de telefone e alarme
-sonoro. Nenhum antivírus real usa esse formato.
-
-**Cripto/airdrop** — "conecte sua carteira para reivindicar". Assinar transação de
-`setApprovalForAll` esvazia a carteira. Nunca conectar carteira em site não verificado.
-
-**Sextortion / e-mail com senha vazada** — a senha veio de um vazamento público antigo.
-Não há infecção. Não pagar. Trocar a senha onde ela ainda for usada.
-
-**Boleto / PIX adulterado** — anexo ou link com dados bancários diferentes do fornecedor
-real. Confirmar sempre por canal separado, nunca pelo contato do próprio e-mail.
+Without an external lookup you can still deliver a solid verdict with steps 1-4 — just state
+the scope ("local analysis, no external reputation lookup").
 
 ---
 
-## Formato do veredito de URL
+## Scam patterns by category
+
+**Credential phishing** — cloned login page, form posting to another host,
+urgency ("your account will be suspended in 24h"), new domain.
+
+**Fake update / ClickFix** — page says the browser/Chrome/Flash needs an update, or
+tells the user to paste a command into PowerShell/Win+R "to verify you are human".
+**Any site asking you to paste a command into a terminal is an attack.** No exceptions.
+
+**Fake CAPTCHA** — "prove you are human" followed by instructions to press Win+R and paste.
+Same family as ClickFix.
+
+**Fake tech support** — full-screen locked pop-up with a phone number and an audible alarm.
+No real antivirus uses that format.
+
+**Crypto/airdrop** — "connect your wallet to claim". Signing a `setApprovalForAll`
+transaction drains the wallet. Never connect a wallet to an unverified site.
+
+**Sextortion / e-mail quoting a leaked password** — the password came from an old public
+breach. There is no infection. Do not pay. Change the password wherever it is still in use.
+
+**Tampered invoice / bank transfer (e.g. boleto/PIX)** — attachment or link with bank details
+different from the real vendor's. Always confirm through a separate channel, never via the
+contact in the e-mail itself.
+
+---
+
+## URL verdict format
 
 ```
-## Veredito
-MALICIOUS — confiança alta — escopo: headers + HTML estático, sem renderização de JS
+## Verdict
+MALICIOUS — high confidence — scope: headers + static HTML, no JS rendering
 
-## O que é
-Página de phishing clonando o login do <marca>, hospedada em domínio registrado há 4 dias.
+## What it is
+Phishing page cloning the <brand> login, hosted on a domain registered 4 days ago.
 
-## Evidências
-1. Domínio real: secure-verify[.]ru (marca aparece só como subdomínio)
-2. <form action="https://outro-host[.]xyz/post.php"> com input type=password
-3. Registro do domínio: 2026-08-25 (4 dias)
+## Evidence
+1. Real domain: secure-verify[.]ru (the brand only appears as a subdomain)
+2. <form action="https://other-host[.]xyz/post.php"> with input type=password
+3. Domain registration: 2026-08-25 (4 days)
 4. Redirect chain: bit.ly → t[.]co → secure-verify[.]ru
 
 ## IoCs
 - hxxps://login.microsoft.com.secure-verify[.]ru/auth
-- outro-host[.]xyz
+- other-host[.]xyz
 - 203.0.113.44
 
-## Ação imediata
-- Não abrir. Se já abriu e digitou senha: trocar a senha de OUTRO dispositivo e
-  encerrar todas as sessões ativas; ativar MFA.
-- Bloquear domínio no DNS/firewall.
+## Immediate action
+- Do not open. If already opened and a password was typed: change the password from ANOTHER
+  device and sign out of all active sessions; enable MFA.
+- Block the domain at DNS/firewall.
 
-## Verificação
-- Confirmar que não há sessão ativa desconhecida no painel de segurança da conta.
+## Verification
+- Confirm there is no unknown active session in the account's security panel.
 ```
 
-Escreva URLs e IPs maliciosos **defangados** (`hxxp://`, `dominio[.]com`) para evitar
-clique acidental.
+Write malicious URLs and IPs **defanged** (`hxxp://`, `domain[.]com`) to avoid an
+accidental click.

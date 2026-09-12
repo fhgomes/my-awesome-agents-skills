@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-deobfuscate.py - Desofuscacao em camadas SEM executar codigo.
+deobfuscate.py - Layered deobfuscation WITHOUT executing code.
 
-Decodifica base64 (inclusive UTF-16LE do PowerShell -EncodedCommand), hex,
-\\x/%/\\u escapes, String.fromCharCode / [char] arrays, gzip/zlib/bz2 e XOR de
-byte unico. Repete enquanto a camada seguinte for decodificavel.
+Decodes base64 (including the UTF-16LE of PowerShell -EncodedCommand), hex,
+\\x/%/\\u escapes, String.fromCharCode / [char] arrays, gzip/zlib/bz2 and
+single-byte XOR. Repeats as long as the next layer is decodable.
 
-Nunca usa eval/exec. Apenas transformacoes de dados.
+Never uses eval/exec. Data transformations only.
 
-Uso:
-    python3 deobfuscate.py --string 'BASE64AQUI'
-    python3 deobfuscate.py arquivo.ps1
+Usage:
+    python3 deobfuscate.py --string 'BASE64HERE'
+    python3 deobfuscate.py file.ps1
     cat payload.txt | python3 deobfuscate.py -
-    python3 deobfuscate.py arquivo.js --extract      # so lista os blobs achados
+    python3 deobfuscate.py file.js --extract      # only list the blobs found
 """
 
 from __future__ import annotations
@@ -53,7 +53,7 @@ def printable_ratio(b: bytes) -> float:
 
 
 def is_utf16le(b: bytes) -> bool:
-    """Texto UTF-16LE tem byte nulo em posicao impar na maioria dos chars ASCII."""
+    """UTF-16LE text has a null byte at the odd position for most ASCII chars."""
     if len(b) < 8 or len(b) % 2:
         return False
     odd = b[1::2]
@@ -61,11 +61,11 @@ def is_utf16le(b: bytes) -> bool:
 
 
 def looks_useful(b: bytes) -> bool:
-    """A camada decodificada parece texto real (nao lixo binario)?
+    """Does the decoded layer look like real text (not binary garbage)?
 
-    Avalia o TEXTO decodificado, nao os bytes crus: payload de PowerShell
-    -EncodedCommand e UTF-16LE e teria ~50% de bytes nulos, sendo rejeitado
-    se olhassemos so os bytes.
+    Evaluates the decoded TEXT, not the raw bytes: a PowerShell -EncodedCommand
+    payload is UTF-16LE and would have ~50% null bytes, so it would be rejected
+    if we only looked at the bytes.
     """
     if len(b) < 8:
         return False
@@ -78,7 +78,7 @@ def looks_useful(b: bytes) -> bool:
 
 
 def to_text(b: bytes) -> str:
-    """Decodifica preferindo UTF-16LE quando o padrao de bytes nulos indicar."""
+    """Decode, preferring UTF-16LE when the null-byte pattern indicates it."""
     if is_utf16le(b):
         try:
             return b.decode("utf-16-le")
@@ -87,13 +87,13 @@ def to_text(b: bytes) -> str:
     return b.decode("utf-8", "replace")
 
 
-# ---------------------------------------------------------------- decodificadores
+# ---------------------------------------------------------------- decoders
 
 def accept(label: str, raw: bytes):
-    """Aceita a camada se virou texto util, ou se virou blob comprimido reconhecido.
+    """Accept the layer if it became useful text, or a recognized compressed blob.
 
-    Sem isso, um payload gzip+base64 seria descartado: os bytes do gzip nao sao
-    imprimiveis e nunca chegariam ao try_compression.
+    Without this, a gzip+base64 payload would be discarded: the gzip bytes are
+    not printable and would never reach try_compression.
     """
     if looks_useful(raw):
         return (label, raw)
@@ -173,7 +173,7 @@ def try_compression(b: bytes):
 
 
 def try_xor(b: bytes):
-    """XOR de byte unico - tenta todas as 255 chaves, aceita a que produzir texto."""
+    """Single-byte XOR - tries all 255 keys, accepts the one that yields text."""
     if len(b) < 24:
         return None
     best = None
@@ -187,7 +187,7 @@ def try_xor(b: bytes):
 
 
 def decode_once(data: bytes):
-    """Aplica a primeira transformacao que funcionar. Retorna (nome, bytes) ou None."""
+    """Apply the first transformation that works. Returns (name, bytes) or None."""
     text = to_text(data)
 
     for fn in (try_charcode, try_escapes):
@@ -195,7 +195,7 @@ def decode_once(data: bytes):
         if r:
             return r
 
-    # blob embutido: pega o maior candidato base64/hex dentro do texto
+    # embedded blob: take the largest base64/hex candidate inside the text
     cands = [(m.group(0), m.start()) for m in B64_RE.finditer(text)]
     if cands:
         blob = max(cands, key=lambda c: len(c[0]))[0]
@@ -228,13 +228,13 @@ def peel(data: bytes, quiet: bool = False) -> bytes:
         step = decode_once(current)
         if not step:
             if depth == 1 and not quiet:
-                print("Nenhuma camada de codificacao reconhecida.\n")
+                print("No recognized encoding layer.\n")
             break
         name, raw = step
         current = raw
         text = to_text(raw)
         if not quiet:
-            print(f"--- camada {depth}: {name}  ({len(raw)} bytes) " + "-" * 24)
+            print(f"--- layer {depth}: {name}  ({len(raw)} bytes) " + "-" * 24)
             print(text[:PREVIEW])
             if len(text) > PREVIEW:
                 print(f"... [+{len(text) - PREVIEW} chars]")
@@ -250,28 +250,28 @@ def report(final: bytes) -> None:
 
     print("=" * 60)
     if hits:
-        print("Indicadores no resultado final:")
+        print("Indicators in the final result:")
         for h in hits:
             print(f"  - {h}")
     else:
-        print("Nenhum indicador obvio no resultado final.")
+        print("No obvious indicator in the final result.")
     if urls:
-        print("\nURLs (defangadas):")
+        print("\nURLs (defanged):")
         for u in urls[:25]:
             print("  - " + u.replace("http", "hxxp").replace(".", "[.]", 1))
     if ips:
         print("\nIPs:")
         for i in ips[:25]:
             print("  - " + i.replace(".", "[.]"))
-    print("\nNenhum codigo foi executado - so transformacao de dados.")
+    print("\nNo code was executed - data transformation only.")
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Desofusca em camadas sem executar codigo")
-    ap.add_argument("file", nargs="?", help="arquivo de entrada, ou - para stdin")
-    ap.add_argument("--string", help="decodifica esta string diretamente")
+    ap = argparse.ArgumentParser(description="Layered deobfuscation without executing code")
+    ap.add_argument("file", nargs="?", help="input file, or - for stdin")
+    ap.add_argument("--string", help="decode this string directly")
     ap.add_argument("--extract", action="store_true",
-                    help="so lista os blobs codificados encontrados, sem decodificar")
+                    help="only list the encoded blobs found, without decoding")
     args = ap.parse_args()
 
     if args.string:
@@ -293,11 +293,11 @@ def main() -> int:
             for m in rx.finditer(text):
                 line = text.count("\n", 0, m.start()) + 1
                 blob = m.group(0)
-                print(f"[{label}] linha {line}, {len(blob)} chars")
+                print(f"[{label}] line {line}, {len(blob)} chars")
                 print(f"  {blob[:100]}{'...' if len(blob) > 100 else ''}\n")
                 found = True
         if not found:
-            print("Nenhum blob codificado encontrado.")
+            print("No encoded blob found.")
         return 0
 
     final = peel(data)

@@ -174,17 +174,17 @@ journalctl -p warning --since "1 hour ago" --no-pager
 **How to execute:**
 ```bash
 # Check certificate and dates
-echo | openssl s_client -connect dominio.com:443 -servername dominio.com 2>/dev/null | openssl x509 -noout -dates -subject -issuer
+echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/null | openssl x509 -noout -dates -subject -issuer
 
 # Check accepted cipher suites
-nmap --script ssl-enum-ciphers -p 443 dominio.com
+nmap --script ssl-enum-ciphers -p 443 example.com
 
 # Check security headers
-curl -sI https://dominio.com | grep -iE "(strict-transport|x-frame|x-content-type|content-security|referrer-policy|permissions-policy)"
+curl -sI https://example.com | grep -iE "(strict-transport|x-frame|x-content-type|content-security|referrer-policy|permissions-policy)"
 
 # Complete test with testssl.sh (install separate)
 git clone --depth 1 https://github.com/drwetter/testssl.sh.git /opt/testssl
-/opt/testssl/testssl.sh https://dominio.com
+/opt/testssl/testssl.sh https://example.com
 ```
 
 **What Sentinel does with output:**
@@ -206,37 +206,37 @@ git clone --depth 1 https://github.com/drwetter/testssl.sh.git /opt/testssl
 **How to execute:**
 ```bash
 # Basic records
-dig +short dominio.com A
-dig +short dominio.com AAAA
-dig +short dominio.com MX
-dig +short dominio.com TXT
-dig +short dominio.com NS
-dig +short dominio.com CNAME
+dig +short example.com A
+dig +short example.com AAAA
+dig +short example.com MX
+dig +short example.com TXT
+dig +short example.com NS
+dig +short example.com CNAME
 
 # All records
-dig dominio.com ANY +noall +answer
+dig example.com ANY +noall +answer
 
 # Check common subdomains (manual)
 for sub in www api app mail ftp staging dev test admin db; do
-  result=$(dig +short $sub.dominio.com A 2>/dev/null)
-  [ -n "$result" ] && echo "$sub.dominio.com → $result"
+  result=$(dig +short $sub.example.com A 2>/dev/null)
+  [ -n "$result" ] && echo "$sub.example.com → $result"
 done
 
 # Check if real IP exposed (if using Cloudflare)
 # IP must be Cloudflare range, not real server
-dig +short dominio.com A
+dig +short example.com A
 # Compare with: https://www.cloudflare.com/ips/
 
 # Check email security
-dig +short dominio.com TXT | grep -i "spf"
-dig +short _dmarc.dominio.com TXT
-dig +short default._domainkey.dominio.com TXT
+dig +short example.com TXT | grep -i "spf"
+dig +short _dmarc.example.com TXT
+dig +short default._domainkey.example.com TXT
 
 # Reverse DNS
 dig -x YOUR_IP +short
 
 # Zone transfer test (must fail if configured correctly)
-dig axfr @ns1.dominio.com dominio.com
+dig axfr @ns1.example.com example.com
 ```
 
 **What Sentinel does with output:**
@@ -308,7 +308,7 @@ sudo nginx -T
 sudo nginx -T | grep -A5 "server_name\|listen\|proxy_pass\|auth_basic\|limit_req\|add_header"
 
 # Check if security headers present
-curl -sI https://dominio.com | head -30
+curl -sI https://example.com | head -30
 ```
 
 **What Sentinel does with output:**

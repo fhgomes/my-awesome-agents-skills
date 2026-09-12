@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-scan_tree.py - Varredura estatica de pasta/repo/PoC procurando conteudo malicioso.
+scan_tree.py - Static sweep of a folder/repo/PoC looking for malicious content.
 
-NAO executa nada da arvore alvo. So le bytes e casa padroes.
+Does NOT execute anything from the target tree. Only reads bytes and matches patterns.
 
-Uso:
-    python3 scan_tree.py <caminho> [--json] [--min-score N] [--max-bytes N]
+Usage:
+    python3 scan_tree.py <path> [--json] [--min-score N] [--max-bytes N]
 
-Saida: achados ranqueados por score de risco, com arquivo:linha e o trecho que casou.
+Output: findings ranked by risk score, with file:line and the matched snippet.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import re
 import sys
 from collections import Counter
 
-# ---------------------------------------------------------------- configuracao
+# ---------------------------------------------------------------- configuration
 
 SKIP_DIRS = {
     ".git", ".svn", ".hg", "node_modules", "venv", ".venv", "env",
@@ -48,83 +48,83 @@ AUTORUN_NAMES = {
     "binding.gyp", "gemfile", "rakefile", "cargo.toml", "meson.build",
 }
 
-# (nome, regex, score, explicacao)
+# (name, regex, score, explanation)
 RULES = [
     ("download_exec_ps",
      r"(?:IEX|Invoke-Expression)\s*\(?\s*(?:New-Object\s+Net\.WebClient|\(?\s*(?:iwr|irm|Invoke-(?:WebRequest|RestMethod)))",
-     9, "Baixa e executa codigo da rede (stager PowerShell)"),
+     9, "Downloads and executes code from the network (PowerShell stager)"),
     ("download_pipe_shell",
      r"(?:curl|wget)\s+[^\n|;]{0,200}\|\s*(?:sudo\s+)?(?:ba)?sh\b",
-     8, "Baixa e canaliza direto pro shell"),
+     8, "Downloads and pipes straight into a shell"),
     ("ps_encoded",
      r"powershell(?:\.exe)?[^\n]{0,120}?\s-(?:e|en|enc|encoded|encodedcommand)\s",
-     9, "PowerShell com comando base64 escondido"),
+     9, "PowerShell with a hidden base64 command"),
     ("ps_stealth_flags",
      r"-(?:w|windowstyle)\s+hidden|-nop\b|-ep\s+bypass|-executionpolicy\s+bypass",
-     6, "Flags de execucao escondida/sem politica"),
+     6, "Hidden / no-policy execution flags"),
     ("lolbin_download",
      r"\b(?:certutil\s+[^\n]{0,80}-urlcache|bitsadmin\s+/transfer|mshta\s+https?://|regsvr32\s+[^\n]{0,60}scrobj\.dll)",
-     9, "LOLBin usado para baixar/executar remotamente"),
+     9, "LOLBin used to download/execute remotely"),
     ("reverse_shell",
      r"(?:/dev/tcp/\d|\bnc\s+(?:-[a-zA-Z]*e|-e)\s|\bbash\s+-i\s*>&|socat\s+[^\n]{0,60}EXEC:)",
      9, "Reverse shell"),
     ("proc_injection",
      r"(?:VirtualAllocEx|WriteProcessMemory|CreateRemoteThread|NtUnmapViewOfSection|QueueUserAPC)",
-     7, "API de injecao de processo"),
+     7, "Process injection API"),
     ("av_evasion",
      r"(?:Add-MpPreference\s+-Exclusion|Set-MpPreference\s+-Disable|AmsiScanBuffer|amsiInitFailed|Defender.{0,20}(?:disable|exclusion))",
-     9, "Tentativa de cegar/desabilitar o antivirus"),
+     9, "Attempt to blind/disable the antivirus"),
     ("ransom_destroy",
      r"(?:vssadmin(?:\.exe)?\s+delete\s+shadows|wmic\s+shadowcopy\s+delete|bcdedit[^\n]{0,60}recoveryenabled\s+no|wbadmin\s+delete\s+catalog)",
-     10, "Destruicao de backup/recuperacao (ransomware)"),
+     10, "Backup/recovery destruction (ransomware)"),
     ("persistence",
      r"(?:schtasks(?:\.exe)?\s+/create|reg(?:\.exe)?\s+add[^\n]{0,80}CurrentVersion\\\\?Run|New-Service\b|sc(?:\.exe)?\s+create\s|crontab\s+-|/etc/cron\.|LD_PRELOAD|authorized_keys)",
-     6, "Mecanismo de persistencia"),
+     6, "Persistence mechanism"),
     ("dyn_exec",
      r"(?:\beval\s*\(|\bexec\s*\(|\bnew\s+Function\s*\(|\bassert\s*\(\s*\$_|\bsetTimeout\s*\(\s*[\"'])",
-     4, "Execucao dinamica de codigo"),
+     4, "Dynamic code execution"),
     ("b64_decode_call",
      r"(?:FromBase64String|atob\s*\(|base64\s*\.?\s*b64decode|Buffer\.from\s*\([^,)]{1,40},\s*['\"]base64|base64\s+-d\b|base64\s+--decode)",
-     4, "Decodificacao de base64"),
+     4, "Base64 decoding"),
     ("b64_blob",
      r"['\"][A-Za-z0-9+/]{220,}={0,2}['\"]",
-     5, "Blob base64 longo embutido"),
+     5, "Long embedded base64 blob"),
     ("charcode_obf",
      r"(?:String\.fromCharCode\s*\((?:\s*\d+\s*,){8,}|(?:\[char\]\s*\d+\s*[+,]\s*){6,}|(?:chr\(\d+\)\s*\+\s*){6,})",
-     6, "String montada byte a byte (ofuscacao)"),
+     6, "String assembled byte by byte (obfuscation)"),
     ("hexname_obf",
      r"_0x[0-9a-f]{4,6}\b",
-     4, "Identificadores hex (javascript-obfuscator)"),
+     4, "Hex identifiers (javascript-obfuscator)"),
     ("webshell_php",
      r"(?:eval|assert|system|passthru|shell_exec|popen)\s*\(\s*\$_(?:POST|GET|REQUEST|COOKIE|SERVER)",
-     10, "Webshell PHP"),
+     10, "PHP webshell"),
     ("child_process",
      r"(?:require\s*\(\s*['\"]child_process['\"]|from\s+['\"]child_process['\"]|\bsubprocess\.(?:Popen|call|run|check_output)|\bos\.system\s*\()",
-     3, "Executa comando do sistema"),
+     3, "Executes a system command"),
     ("cred_theft",
      r"(?:Login\s?Data|Local\s?State|logins\.json|key4\.db|cookies\.sqlite|wallet\.dat|MetaMask|\.ssh[/\\\\]id_rsa|\.aws[/\\\\]credentials|\.git-credentials|\.npmrc|discord[/\\\\]Local\s?Storage|Telegram\s?Desktop[/\\\\]tdata)",
-     8, "Acesso a arquivo de credencial/carteira (infostealer)"),
+     8, "Access to credential/wallet files (infostealer)"),
     ("exfil_channel",
      r"(?:discord(?:app)?\.com/api/webhooks/|api\.telegram\.org/bot|pastebin\.com/raw|gist\.githubusercontent\.com/[^\s\"']{0,80}/raw)",
-     8, "Canal tipico de exfiltracao/C2"),
+     8, "Typical exfiltration/C2 channel"),
     ("miner",
      r"(?:stratum\+(?:tcp|ssl)://|xmrig|nicehash|nanopool|--donate-level|randomx)",
      8, "Cryptominer"),
     ("dyndns_c2",
      r"\b[\w.-]+\.(?:duckdns\.org|no-ip\.(?:org|com|biz)|ngrok(?:-free)?\.(?:io|app)|serveo\.net|hopto\.org|zapto\.org)\b",
-     7, "Dominio dinamico tipico de C2"),
+     7, "Dynamic domain typical of C2"),
     ("onion",
      r"\b[a-z2-7]{16,56}\.onion\b",
-     7, "Endereco Tor"),
+     7, "Tor address"),
     ("raw_ip_url",
      r"https?://(?:\d{1,3}\.){3}\d{1,3}(?::\d{2,5})?",
-     5, "URL com IP cru (sem dominio)"),
+     5, "URL with a raw IP (no domain)"),
     ("env_dump",
      r"(?:JSON\.stringify\s*\(\s*process\.env|\bdict\s*\(\s*os\.environ|os\.environ\s*\)\s*\)|process\.env\s*\)\s*[,)])",
-     7, "Serializacao de todo o ambiente (exfil de segredo)"),
+     7, "Serialization of the entire environment (secret exfil)"),
     ("temp_write_exec",
      r"(?:%TEMP%|\$env:TEMP|/tmp/\.[\w-]+|%APPDATA%)[^\n]{0,60}\.(?:exe|dll|ps1|bat|scr|vbs|jar)",
-     6, "Escreve executavel em diretorio temporario"),
+     6, "Writes an executable into a temp directory"),
 ]
 
 COMPILED = [(n, re.compile(p, re.I), s, d) for n, p, s, d in RULES]
@@ -133,7 +133,7 @@ NPM_HOOKS = re.compile(r'"(preinstall|postinstall|install|prepare|prepublish)"\s
 LONG_LINE = 1200
 
 
-# ---------------------------------------------------------------- utilitarios
+# ---------------------------------------------------------------- utilities
 
 def entropy(data: bytes) -> float:
     if not data:
@@ -170,17 +170,17 @@ def is_probably_text(head: bytes) -> bool:
 
 def suspicious_name(name: str) -> str | None:
     if "‮" in name:
-        return "Caractere RLO no nome (extensao invertida)"
+        return "RLO character in the name (reversed extension)"
     parts = name.lower().split(".")
     if len(parts) >= 3:
         risky = {"exe", "scr", "bat", "cmd", "com", "pif", "vbs", "js", "jar", "lnk", "hta"}
         decoys = {"pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "txt", "mp4", "zip"}
         if parts[-1] in risky and parts[-2] in decoys:
-            return f"Extensao dupla: .{parts[-2]}.{parts[-1]}"
+            return f"Double extension: .{parts[-2]}.{parts[-1]}"
     return None
 
 
-# ---------------------------------------------------------------- varredura
+# ---------------------------------------------------------------- sweep
 
 def scan_text_file(path: str, rel: str, max_bytes: int, out: list) -> None:
     try:
@@ -199,7 +199,7 @@ def scan_text_file(path: str, rel: str, max_bytes: int, out: list) -> None:
                 "file": rel, "line": line_no, "rule": name,
                 "score": score, "desc": desc, "snippet": snippet,
             })
-            break  # 1 achado por regra/arquivo evita inundar o relatorio
+            break  # 1 finding per rule/file keeps the report from flooding
 
     base = os.path.basename(path).lower()
     if base == "package.json" and NPM_HOOKS.search(text):
@@ -207,7 +207,7 @@ def scan_text_file(path: str, rel: str, max_bytes: int, out: list) -> None:
         line_no = text.count("\n", 0, m.start()) + 1
         out.append({
             "file": rel, "line": line_no, "rule": "npm_install_hook", "score": 7,
-            "desc": "Hook de install do npm executa codigo no 'npm install'",
+            "desc": "npm install hook executes code on 'npm install'",
             "snippet": lines[line_no - 1].strip()[:180] if line_no <= len(lines) else "",
         })
 
@@ -217,7 +217,7 @@ def scan_text_file(path: str, rel: str, max_bytes: int, out: list) -> None:
             if len(ln) > LONG_LINE:
                 out.append({
                     "file": rel, "line": i, "rule": "long_line", "score": 5,
-                    "desc": f"Linha de {len(ln)} chars (possivel payload inline)",
+                    "desc": f"Line of {len(ln)} chars (possible inline payload)",
                     "snippet": ln[:120] + "...",
                 })
                 break
@@ -234,17 +234,17 @@ def scan_binary_file(path: str, rel: str, size: int, out: list) -> None:
 
     out.append({
         "file": rel, "line": 0, "rule": "binary_present", "score": 5,
-        "desc": f"Binario na arvore ({size} bytes, entropia {ent:.2f})",
+        "desc": f"Binary in the tree ({size} bytes, entropy {ent:.2f})",
         "snippet": f"sha256={sha256(path)[:32]}...",
     })
     if ent > 7.4 and ext in {".exe", ".dll", ".so", ".node", ".pyd", ".bin"}:
         out.append({
             "file": rel, "line": 0, "rule": "high_entropy", "score": 3,
-            "desc": f"Entropia {ent:.2f} - packed/criptografado, analise estatica limitada",
+            "desc": f"Entropy {ent:.2f} - packed/encrypted, static analysis limited",
             "snippet": "",
         })
 
-    # strings ASCII do binario, passadas pelas mesmas regras
+    # ASCII strings from the binary, run through the same rules
     text = "".join(chr(b) if 32 <= b < 127 else "\n" for b in sample)
     for name, rx, score, desc in COMPILED:
         m = rx.search(text)
@@ -277,7 +277,7 @@ def walk(root: str, max_bytes: int) -> tuple[list, int]:
 
             if fn.lower() in AUTORUN_NAMES:
                 findings.append({"file": rel, "line": 0, "rule": "autorun_file", "score": 2,
-                                 "desc": "Arquivo com gatilho de execucao automatica - revisar a mao",
+                                 "desc": "File with an auto-execution trigger - review by hand",
                                  "snippet": fn})
 
             ext = os.path.splitext(fn)[1].lower()
@@ -301,20 +301,20 @@ def walk(root: str, max_bytes: int) -> tuple[list, int]:
     return findings, count
 
 
-# ---------------------------------------------------------------- relatorio
+# ---------------------------------------------------------------- report
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Varredura estatica de conteudo malicioso")
+    ap = argparse.ArgumentParser(description="Static sweep for malicious content")
     ap.add_argument("path")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--min-score", type=int, default=1)
     ap.add_argument("--max-bytes", type=int, default=2 * 1024 * 1024,
-                    help="bytes lidos por arquivo de texto (default 2MB)")
+                    help="bytes read per text file (default 2MB)")
     args = ap.parse_args()
 
     root = os.path.abspath(args.path)
     if not os.path.exists(root):
-        print(f"erro: caminho nao existe: {root}", file=sys.stderr)
+        print(f"error: path does not exist: {root}", file=sys.stderr)
         return 2
 
     if os.path.isfile(root):
@@ -342,13 +342,13 @@ def main() -> int:
                          indent=2, ensure_ascii=False))
         return 0
 
-    print(f"alvo   : {root}")
-    print(f"arquivos varridos: {total}")
-    print(f"achados: {len(findings)}\n")
+    print(f"target : {root}")
+    print(f"files scanned: {total}")
+    print(f"findings: {len(findings)}\n")
 
     if not findings:
-        print("Nenhum padrao suspeito encontrado no escopo analisado.")
-        print("ATENCAO: ausencia de achado nao prova que e limpo - so que estas regras nao casaram.")
+        print("No suspicious pattern found in the analyzed scope.")
+        print("WARNING: absence of findings does not prove it is clean - only that these rules did not match.")
         return 0
 
     for f in findings:
@@ -362,12 +362,12 @@ def main() -> int:
     top = max(f["score"] for f in findings)
     print("-" * 60)
     if top >= 9:
-        print("TRIAGEM: indicadores de alta severidade. Tratar como hostil ate provar o contrario.")
+        print("TRIAGE: high-severity indicators. Treat as hostile until proven otherwise.")
     elif top >= 6:
-        print("TRIAGEM: indicadores relevantes. Revisar cada achado a mao antes de qualquer execucao.")
+        print("TRIAGE: relevant indicators. Review each finding by hand before any execution.")
     else:
-        print("TRIAGEM: sinais fracos. Podem ser falso positivo - confirmar no contexto.")
-    print("Estas regras sao heuristicas. O veredito final e da analise humana/do agente.")
+        print("TRIAGE: weak signals. May be false positives - confirm in context.")
+    print("These rules are heuristics. The final verdict belongs to the human/agent analysis.")
     return 0
 
 

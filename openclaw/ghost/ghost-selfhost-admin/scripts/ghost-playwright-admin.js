@@ -1,22 +1,22 @@
 #!/usr/bin/env node
 /**
  * ghost-playwright-admin.js
- * Automação Playwright para operações Ghost Admin que não têm endpoint na API.
- * 
- * Uso:
+ * Playwright automation for Ghost Admin operations that have no API endpoint.
+ *
+ * Usage:
  *   node ghost-playwright-admin.js <operation> [--options]
- * 
- * Operações:
- *   login                          — Login e salvar sessão
- *   code-injection --header="..." --footer="..."  — Configurar code injection
- *   navigation --primary='[...]' --secondary='[...]' — Configurar menus
- *   design --json='{"...":"..."}'  — Configurar design settings
- *   portal --json='{"...":"..."}'  — Configurar Portal settings
- *   email --json='{"...":"..."}'   — Configurar email/Mailgun
- *   labs --toggle=feature_name     — Toggle Labs feature
- *   screenshot --page=dashboard    — Screenshot de página admin
- * 
- * Requer: npx playwright install chromium (primeira vez)
+ *
+ * Operations:
+ *   login                          — Log in and save the session
+ *   code-injection --header="..." --footer="..."  — Configure code injection
+ *   navigation --primary='[...]' --secondary='[...]' — Configure menus
+ *   design --json='{"...":"..."}'  — Configure design settings
+ *   portal --json='{"...":"..."}'  — Configure Portal settings
+ *   email --json='{"...":"..."}'   — Configure email/Mailgun
+ *   labs --toggle=feature_name     — Toggle a Labs feature
+ *   screenshot --page=dashboard    — Screenshot of an admin page
+ *
+ * Requires: npx playwright install chromium (first time only)
  */
 
 const GHOST_URL = process.env.GHOST_URL;
@@ -24,7 +24,7 @@ const GHOST_ADMIN_EMAIL = process.env.GHOST_ADMIN_EMAIL;
 const GHOST_ADMIN_PASSWORD = process.env.GHOST_ADMIN_PASSWORD;
 
 if (!GHOST_URL || !GHOST_ADMIN_EMAIL || !GHOST_ADMIN_PASSWORD) {
-  console.error('❌ Variáveis obrigatórias para Playwright:');
+  console.error('❌ Required environment variables for Playwright:');
   console.error('   GHOST_URL, GHOST_ADMIN_EMAIL, GHOST_ADMIN_PASSWORD');
   process.exit(1);
 }
@@ -48,7 +48,7 @@ async function getPlaywright() {
   try {
     return require('playwright');
   } catch {
-    console.log('📦 Instalando Playwright...');
+    console.log('📦 Installing Playwright...');
     const { execSync } = require('child_process');
     execSync('npx playwright install chromium', { stdio: 'inherit' });
     return require('playwright');
@@ -61,17 +61,17 @@ async function createBrowser(pw) {
 
 async function loginAndGetContext(browser) {
   const fs = require('fs');
-  
+
   // Try to reuse session
   if (fs.existsSync(STORAGE_STATE)) {
     try {
       const context = await browser.newContext({ storageState: STORAGE_STATE });
       const page = await context.newPage();
       await page.goto(`${ADMIN_URL}/#/dashboard`, { waitUntil: 'networkidle', timeout: 15000 });
-      
+
       // Check if still logged in
       if (!page.url().includes('/signin')) {
-        console.log('🔑 Sessão reutilizada');
+        console.log('🔑 Session reused');
         return { context, page };
       }
       await context.close();
@@ -79,30 +79,30 @@ async function loginAndGetContext(browser) {
       // Session expired, continue to fresh login
     }
   }
-  
+
   // Fresh login
   const context = await browser.newContext();
   const page = await context.newPage();
-  
+
   await page.goto(`${ADMIN_URL}/#/signin`, { waitUntil: 'networkidle' });
   await page.fill('input[name="identification"]', GHOST_ADMIN_EMAIL);
   await page.fill('input[name="password"]', GHOST_ADMIN_PASSWORD);
   await page.click('button[type="submit"]');
-  
+
   // Wait for redirect to dashboard
   await page.waitForURL(/\/#\/(dashboard|site)/, { timeout: 15000 });
-  console.log('✅ Login realizado');
-  
+  console.log('✅ Logged in');
+
   // Save session
   await context.storageState({ path: STORAGE_STATE });
-  
+
   return { context, page };
 }
 
 // --- Operations ---
 
 async function codeInjection(page, opts) {
-  console.log('💉 Configurando Code Injection...');
+  console.log('💉 Configuring Code Injection...');
   await page.goto(`${ADMIN_URL}/#/settings/code-injection`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
 
@@ -114,13 +114,13 @@ async function codeInjection(page, opts) {
       await page.keyboard.press('Meta+A');
       await page.keyboard.press('Backspace');
       await page.keyboard.type(opts.header);
-      console.log('   ✅ Header atualizado');
+      console.log('   ✅ Header updated');
     } else {
       // Fallback: try textarea
       const textarea = page.locator('#ghost-head');
       if (await textarea.count() > 0) {
         await textarea.fill(opts.header);
-        console.log('   ✅ Header atualizado (textarea)');
+        console.log('   ✅ Header updated (textarea)');
       }
     }
   }
@@ -132,12 +132,12 @@ async function codeInjection(page, opts) {
       await page.keyboard.press('Meta+A');
       await page.keyboard.press('Backspace');
       await page.keyboard.type(opts.footer);
-      console.log('   ✅ Footer atualizado');
+      console.log('   ✅ Footer updated');
     } else {
       const textarea = page.locator('#ghost-foot');
       if (await textarea.count() > 0) {
         await textarea.fill(opts.footer);
-        console.log('   ✅ Footer atualizado (textarea)');
+        console.log('   ✅ Footer updated (textarea)');
       }
     }
   }
@@ -147,45 +147,45 @@ async function codeInjection(page, opts) {
   if (await saveButton.isEnabled()) {
     await saveButton.click();
     await page.waitForTimeout(1000);
-    console.log('   ✅ Salvo com sucesso');
+    console.log('   ✅ Saved successfully');
   }
 }
 
 async function configureNavigation(page, opts) {
-  console.log('🧭 Configurando Navigation...');
+  console.log('🧭 Configuring Navigation...');
   await page.goto(`${ADMIN_URL}/#/settings/navigation`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1000);
 
   if (opts.primary) {
     const items = JSON.parse(opts.primary);
-    console.log(`   Configurando ${items.length} itens no menu primário...`);
+    console.log(`   Configuring ${items.length} items in the primary menu...`);
     // Note: Ghost navigation UI is complex - this is a simplified version
     // For production, inspect the actual DOM structure of your Ghost version
-    console.log('   ⚠️  Configuração de navigation requer interação manual específica por versão');
-    console.log('   💡 Use a API de settings com o campo "navigation" se disponível');
+    console.log('   ⚠️  Navigation configuration requires version-specific manual interaction');
+    console.log('   💡 Use the settings API with the "navigation" field if available');
   }
 
   if (opts.secondary) {
     const items = JSON.parse(opts.secondary);
-    console.log(`   Configurando ${items.length} itens no menu secundário...`);
-    console.log('   ⚠️  Mesmo aviso acima');
+    console.log(`   Configuring ${items.length} items in the secondary menu...`);
+    console.log('   ⚠️  Same caveat as above');
   }
 }
 
 async function configureDesign(page, opts) {
-  console.log('🎨 Configurando Design...');
+  console.log('🎨 Configuring Design...');
   await page.goto(`${ADMIN_URL}/#/settings/design`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
 
   if (opts.json) {
     const settings = JSON.parse(opts.json);
-    console.log(`   Aplicando ${Object.keys(settings).length} configurações de design...`);
+    console.log(`   Applying ${Object.keys(settings).length} design settings...`);
     // Design settings are theme-specific and vary heavily
     // This provides the framework - specific selectors need to be adapted per theme
     for (const [key, value] of Object.entries(settings)) {
       console.log(`   🔧 ${key}: ${value}`);
     }
-    console.log('   ⚠️  Design settings são específicos por tema - adapte os seletores');
+    console.log('   ⚠️  Design settings are theme-specific - adapt the selectors');
   }
 }
 
@@ -203,14 +203,14 @@ async function takeScreenshot(page, opts) {
   };
 
   const target = pageMap[opts.page] || `/#/${opts.page}`;
-  console.log(`📸 Screenshot de ${opts.page}...`);
-  
+  console.log(`📸 Screenshot of ${opts.page}...`);
+
   await page.goto(`${ADMIN_URL}${target}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(2000);
-  
+
   const outputPath = opts.output || `/tmp/ghost-screenshot-${opts.page}-${Date.now()}.png`;
   await page.screenshot({ path: outputPath, fullPage: true });
-  console.log(`   ✅ Salvo em: ${outputPath}`);
+  console.log(`   ✅ Saved to: ${outputPath}`);
 }
 
 // --- Main ---
@@ -219,8 +219,8 @@ async function main() {
   const opts = parseArgs(rest);
 
   if (!operation) {
-    console.log('Uso: node ghost-playwright-admin.js <operation> [--options]');
-    console.log('Operações: login, code-injection, navigation, design, portal, email, labs, screenshot');
+    console.log('Usage: node ghost-playwright-admin.js <operation> [--options]');
+    console.log('Operations: login, code-injection, navigation, design, portal, email, labs, screenshot');
     process.exit(0);
   }
 
@@ -232,7 +232,7 @@ async function main() {
 
     switch (operation) {
       case 'login':
-        console.log('✅ Login testado com sucesso');
+        console.log('✅ Login tested successfully');
         break;
       case 'code-injection':
         await codeInjection(page, opts);
@@ -247,8 +247,8 @@ async function main() {
         await takeScreenshot(page, opts);
         break;
       default:
-        console.log(`⚠️  Operação '${operation}' ainda não implementada.`);
-        console.log('   Operações disponíveis: login, code-injection, navigation, design, screenshot');
+        console.log(`⚠️  Operation '${operation}' not implemented yet.`);
+        console.log('   Available operations: login, code-injection, navigation, design, screenshot');
     }
 
     await context.close();
@@ -258,6 +258,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('💥 Erro:', err.message);
+  console.error('💥 Error:', err.message);
   process.exit(1);
 });

@@ -9,6 +9,11 @@ A collection of agent skills and configurations for AI assistants, built for [Op
 > pointers, never prerequisites. Content is deliberately duplicated between variants
 > when needed — isolation beats DRY here.
 
+> **Contributing / editing with an AI agent:** this repository is public. Read
+> [CLAUDE.md](CLAUDE.md) (Claude Code) or [AGENTS.md](AGENTS.md) (any agent) first —
+> English only, no personal or machine-specific data, and a `redact` + `warden`
+> security pass before every commit.
+
 ## Structure
 
 ```
@@ -37,12 +42,12 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | Skill | Description |
 |-------|-------------|
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
-| [geracao-visual-consistente](skills/geracao-visual-consistente/SKILL.md) | Consistent AI character/persona generation — Character Bible, canonical references, 6-round interview, file/version conventions, canon promotion, and calibration of subtle identity cues (PT-BR) |
+| [consistent-visual-generation](skills/consistent-visual-generation/SKILL.md) | Consistent AI character/persona generation — Character Bible, canonical references, 6-round interview, file/version conventions, canon promotion, and calibration of subtle identity cues |
 | [harness-engineer](skills/harness-engineer/SKILL.md) | Identify a repo deeply and harvest its patterns, conventions, and business rules into an AI harness — router AGENTS.md + vendor files + routed guides so any coding agent works with more context and quality. Also available in [Claude skill format](claude/skills/harness-engineer/) (SKILL.md + on-demand references) |
-| [media-transcription](skills/media-transcription/SKILL.md) | Audio/video transcription — faster-whisper large-v3 on GPU (local) or YouTube transcript (remote), with quality/QA playbook (PT-BR) |
+| [media-transcription](skills/media-transcription/SKILL.md) | Audio/video transcription — faster-whisper large-v3 on GPU (local) or YouTube transcript (remote), with environment detection, fail-fast, and a quality/QA playbook |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
 | [openclaw-specialist](skills/openclaw-specialist/SKILL.md) | End-to-end OpenClaw ops — config protocol, cron authoring, channels, upgrades, diagnostics |
-| [video-editing](skills/video-editing/SKILL.md) | CLI video editing with ffmpeg (WSL) — frame-accurate cuts, 9:16/1:1 formats, CapCut-style word-level captions, zoom+flash+whoosh transitions (PT-BR), with [real production examples](skills/video-editing/examples/tdc-cortes-2026-08/) |
+| [video-editing](skills/video-editing/SKILL.md) | CLI video editing with ffmpeg — frame-accurate cuts, 9:16/1:1/4:5 formats, CapCut-style word-level captions, xfade catalog, zoom+flash+whoosh transitions, color grading, runtime GPU/NVENC detection, with a [parameterized example pipeline](skills/video-editing/examples/interview-clip-pipeline/) |
 
 ## Security
 

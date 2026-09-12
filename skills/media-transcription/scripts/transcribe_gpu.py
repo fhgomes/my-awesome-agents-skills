@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Transcrição local GPU com faster-whisper large-v3 (aceita .wav/.mp3/.mp4 direto).
+"""Local GPU transcription with faster-whisper large-v3 (takes .wav/.mp3/.mp4 directly).
 
-Uso:
-  python transcribe_gpu.py --out-dir DIR --base NOME arquivo1 [arquivo2 ...]
-      [--prompt "vocabulário de contexto"] [--language pt] [--beam 5]
+Usage:
+  python transcribe_gpu.py --out-dir DIR --base NAME file1 [file2 ...]
+      [--prompt "context vocabulary"] [--language pt] [--beam 5]
 
-Gera por arquivo: <base>-parteN-legenda-<lang>.srt e <base>-parteN-transcript-<lang>.txt
-(sem sufixo parteN quando for um arquivo só) e, se houver vários,
-<base>-COMPLETO-transcript-<lang>.txt combinado.
+Writes per file: <base>-partN-subtitles-<lang>.srt and <base>-partN-transcript-<lang>.txt
+(no partN suffix for a single file) and, with several files,
+a combined <base>-FULL-transcript-<lang>.txt.
 """
 import argparse
 import ctypes
@@ -23,8 +23,8 @@ sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 
 def setup_cuda_dlls():
-    """No Windows, ctranslate2 não acha as DLLs pip da NVIDIA sozinho:
-    precisa de PATH + pré-carga via ctypes ANTES do import (add_dll_directory não basta)."""
+    """On Windows, ctranslate2 cannot find NVIDIA's pip DLLs on its own:
+    it needs PATH + a ctypes preload BEFORE the import (add_dll_directory is not enough)."""
     roots = []
     for sp in site.getsitepackages() + [site.getusersitepackages()]:
         if sp and os.path.isdir(os.path.join(sp, "nvidia")):
@@ -51,7 +51,7 @@ def setup_cuda_dlls():
                 try:
                     ctypes.WinDLL(p)
                 except OSError as e:
-                    print(f"[setup] preload FALHOU {name}: {e}", flush=True)
+                    print(f"[setup] preload FAILED {name}: {e}", flush=True)
                 break
 
 
@@ -87,18 +87,37 @@ def main():
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--base", required=True)
     ap.add_argument("--prompt", default=None)
-    ap.add_argument("--language", default="pt")
+    ap.add_argument("--language", default="pt",
+                    help="language code for Whisper (default: pt; set explicitly)")
     ap.add_argument("--beam", type=int, default=5)
     args = ap.parse_args()
 
     setup_cuda_dlls()
     from faster_whisper import WhisperModel
 
+    # FAIL-FAST: validate EVERYTHING that can fail on write BEFORE spending GPU time.
+    # (2026-08: a missing out-dir only blew up at the SRT open(), AFTER
+    # transcribing 100 min of audio — all that work was lost.)
+    os.makedirs(args.out_dir, exist_ok=True)
+    probe = os.path.join(args.out_dir, ".write-test")
+    try:
+        with open(probe, "w", encoding="utf-8") as f:
+            f.write("ok")
+        os.remove(probe)
+    except OSError as e:
+        print(f"[fatal] out-dir not writable: {args.out_dir} ({e})", flush=True)
+        sys.exit(3)
+    missing = [p for p in args.files if not os.path.isfile(p)]
+    if missing:
+        print(f"[fatal] file(s) not found: {missing}", flush=True)
+        sys.exit(3)
+    print(f"[pre] out-dir OK, {len(args.files)} file(s) OK", flush=True)
+
     try:
         r = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,memory.total",
                             "--format=csv,noheader"], capture_output=True, text=True, timeout=15)
-        print(f"[vram] {r.stdout.strip()} (se quase cheia, feche apps de GPU: "
-              f"transcrição pode cair de ~4x para ~0.3x tempo real)", flush=True)
+        print(f"[vram] {r.stdout.strip()} (if nearly full, close GPU apps: "
+              f"transcription can drop from ~4x to ~0.3x realtime)", flush=True)
     except Exception:
         pass
 
@@ -107,19 +126,19 @@ def main():
     for ct in ("int8_float16", "int8"):
         try:
             model = WhisperModel("large-v3", device="cuda", compute_type=ct)
-            print(f"[load] large-v3 cuda {ct} em {time.perf_counter() - t0:.1f}s", flush=True)
+            print(f"[load] large-v3 cuda {ct} in {time.perf_counter() - t0:.1f}s", flush=True)
             break
         except Exception as e:
-            print(f"[load] {ct} falhou: {e}", flush=True)
+            print(f"[load] {ct} failed: {e}", flush=True)
     if model is None:
-        print("[fatal] GPU indisponível — NÃO caia para CPU sem perguntar ao usuário", flush=True)
+        print("[fatal] GPU unavailable — do NOT fall back to CPU without asking the user", flush=True)
         sys.exit(2)
 
     multi = len(args.files) > 1
     all_parts = []
     grand = time.perf_counter()
     for idx, path in enumerate(args.files, 1):
-        tag = f"-parte{idx}" if multi else ""
+        tag = f"-part{idx}" if multi else ""
         print(f"\n[{idx}/{len(args.files)}] {os.path.basename(path)}", flush=True)
         t1 = time.perf_counter()
         seg_iter, info = model.transcribe(
@@ -128,43 +147,58 @@ def main():
         print(f"[audio] {fmt_hms(info.duration)}", flush=True)
         segments = []
         last = 0.0
-        for seg in seg_iter:
-            segments.append((seg.start, seg.end, seg.text.strip()))
-            el = time.perf_counter() - t1
-            if el - last >= 10.0:
-                last = el
-                print(f"[prog] {fmt_hms(seg.end)}/{fmt_hms(info.duration)} | {el:6.1f}s | "
-                      f"{seg.end / el:4.1f}x", flush=True)
+        # Incremental stream to .partial: if the process dies (OOM/kill/power
+        # loss), whatever was already transcribed stays on disk instead of
+        # turning to dust.
+        partial_path = os.path.join(
+            args.out_dir, f"{args.base}{tag}-subtitles-{args.language}.srt.partial")
+        with open(partial_path, "w", encoding="utf-8") as pf:
+            for seg in seg_iter:
+                segments.append((seg.start, seg.end, seg.text.strip()))
+                pf.write(f"{len(segments)}\n{fmt_srt(seg.start)} --> {fmt_srt(seg.end)}\n"
+                         f"{seg.text.strip()}\n\n")
+                pf.flush()
+                el = time.perf_counter() - t1
+                if el - last >= 10.0:
+                    last = el
+                    print(f"[prog] {fmt_hms(seg.end)}/{fmt_hms(info.duration)} | {el:6.1f}s | "
+                          f"{seg.end / el:4.1f}x", flush=True)
         took = time.perf_counter() - t1
         print(f"[done] {took / 60:.1f} min | {len(segments)} seg | "
-              f"{info.duration / took:.2f}x tempo real", flush=True)
+              f"{info.duration / took:.2f}x realtime", flush=True)
         all_parts.append((os.path.basename(path), info.duration, segments))
 
-        with open(os.path.join(args.out_dir, f"{args.base}{tag}-legenda-{args.language}.srt"),
+        with open(os.path.join(args.out_dir, f"{args.base}{tag}-subtitles-{args.language}.srt"),
                   "w", encoding="utf-8") as f:
             for i, (s, e, txt) in enumerate(segments, 1):
                 f.write(f"{i}\n{fmt_srt(s)} --> {fmt_srt(e)}\n{txt}\n\n")
         with open(os.path.join(args.out_dir, f"{args.base}{tag}-transcript-{args.language}.txt"),
                   "w", encoding="utf-8") as f:
             f.write(f"TRANSCRIPT — {os.path.basename(path)} ({fmt_hms(info.duration)})\n")
-            f.write("faster-whisper large-v3 GPU — revisar nomes próprios.\n\n")
+            f.write("faster-whisper large-v3 GPU — review proper nouns.\n\n")
             write_blocks(f, segments)
 
+        # Final SRT written successfully: the .partial has served its purpose.
+        try:
+            os.remove(partial_path)
+        except OSError:
+            pass
+
     if multi:
-        combo = os.path.join(args.out_dir, f"{args.base}-COMPLETO-transcript-{args.language}.txt")
+        combo = os.path.join(args.out_dir, f"{args.base}-FULL-transcript-{args.language}.txt")
         with open(combo, "w", encoding="utf-8") as f:
-            f.write(f"TRANSCRIPT COMPLETO — {args.base}\n"
-                    "Partes sequenciais; timestamps reiniciam por parte.\n")
+            f.write(f"FULL TRANSCRIPT — {args.base}\n"
+                    "Sequential parts; timestamps restart per part.\n")
             for i, (name, dur, segments) in enumerate(all_parts, 1):
-                f.write(f"\n{'=' * 70}\nPARTE {i}/{len(all_parts)} — {name} "
+                f.write(f"\n{'=' * 70}\nPART {i}/{len(all_parts)} — {name} "
                         f"({fmt_hms(dur)})\n{'=' * 70}\n\n")
                 write_blocks(f, segments)
         print(f"[out] {combo}", flush=True)
 
     total_audio = sum(p[1] for p in all_parts)
     total = time.perf_counter() - grand
-    print(f"[fim] áudio {fmt_hms(total_audio)} | {total / 60:.1f} min | "
-          f"{total_audio / total:.2f}x tempo real", flush=True)
+    print(f"[end] audio {fmt_hms(total_audio)} | {total / 60:.1f} min | "
+          f"{total_audio / total:.2f}x realtime", flush=True)
 
 
 if __name__ == "__main__":

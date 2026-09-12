@@ -1,52 +1,52 @@
-# Resposta a Incidente — Host Possivelmente Comprometido
+# Incident Response — Possibly Compromised Host
 
-Aplica quando o usuário diz: "já executei", "acho que peguei vírus", "o Defender acusou",
-"tá aparecendo coisa estranha", "roubaram minha conta".
+Applies when the user says: "I already ran it", "I think I caught a virus", "Defender flagged it",
+"weird stuff is showing up", "my account was stolen".
 
-Prioridade: **conter → preservar → escopo → credenciais → erradicar**. Nessa ordem.
+Priority: **contain → preserve → scope → credentials → eradicate**. In that order.
 
 ---
 
-## Primeiros 15 minutos
+## First 15 minutes
 
-### 1. Conter
-- Desconectar da rede (Wi-Fi off / cabo fora).
-- **Não desligar** a máquina se houver suspeita de ransomware ativo ou necessidade de
-  perícia — a RAM tem chave e evidência. Desligue apenas se a criptografia estiver em curso.
-- Não rodar "limpeza" ainda. Limpar antes de entender apaga a evidência do escopo.
+### 1. Contain
+- Disconnect from the network (Wi-Fi off / cable out).
+- **Do not power off** the machine if active ransomware is suspected or forensics may be
+  needed — RAM holds keys and evidence. Power off only if encryption is in progress.
+- Do not run a "cleanup" yet. Cleaning before understanding erases the scope evidence.
 
-### 2. Preservar
+### 2. Preserve
 ```powershell
-Get-FileHash "C:\caminho\amostra.exe" -Algorithm SHA256
-Copy-Item "C:\caminho\amostra.exe" "$env:USERPROFILE\Desktop\quarentena\amostra.exe.bin" -Force
+Get-FileHash "C:\path\sample.exe" -Algorithm SHA256
+Copy-Item "C:\path\sample.exe" "$env:USERPROFILE\Desktop\quarantine\sample.exe.bin" -Force
 ```
-Renomear com `.bin` evita duplo-clique acidental. Anotar: horário do run, o que o usuário
-clicou, de onde veio, o que apareceu na tela.
+Renaming to `.bin` prevents an accidental double-click. Note: time of the run, what the user
+clicked, where it came from, what appeared on screen.
 
-### 3. O que o Defender já viu
+### 3. What Defender has already seen
 ```powershell
 Get-MpThreatDetection | Sort-Object InitialDetectionTime -Descending |
   Select-Object InitialDetectionTime,ThreatID,Resources,ActionSuccess | Format-List
 
 Get-MpThreat | Select-Object ThreatName,SeverityID,DidThreatExecute,Resources | Format-List
 ```
-`DidThreatExecute = True` muda tudo: não é mais "arquivo suspeito", é comprometimento.
+`DidThreatExecute = True` changes everything: it is no longer a "suspicious file", it is a compromise.
 
 ---
 
-## Escopo — o que realmente rodou
+## Scope — what actually ran
 
-### Processos e origem
+### Processes and origin
 ```powershell
 Get-CimInstance Win32_Process |
   Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine |
   Where-Object { $_.ExecutablePath -match '\\Temp\\|\\AppData\\|\\Downloads\\|\\Public\\|\\ProgramData\\' } |
   Format-List
 ```
-Cadeia parent-child conta a história: `winword.exe → powershell.exe` é execução de macro.
-`explorer.exe → wscript.exe` é usuário que abriu um `.vbs`.
+The parent-child chain tells the story: `winword.exe → powershell.exe` is macro execution.
+`explorer.exe → wscript.exe` is a user who opened a `.vbs`.
 
-### Rede
+### Network
 ```powershell
 Get-NetTCPConnection -State Established | ForEach-Object {
   [PSCustomObject]@{
@@ -56,17 +56,17 @@ Get-NetTCPConnection -State Established | ForEach-Object {
   }
 } | Sort-Object Proc | Format-Table -AutoSize
 ```
-Procure: processo de usuário falando com IP cru em porta alta, conexão persistente pra
-host desconhecido, tráfego pra Discord/Telegram API vindo de processo que não é o app.
+Look for: a user process talking to a raw IP on a high port, a persistent connection to an
+unknown host, traffic to the Discord/Telegram API coming from a process that is not the app.
 
-### Histórico do PowerShell (frequentemente esquecido pelo atacante)
+### PowerShell history (frequently forgotten by the attacker)
 ```powershell
 Get-Content "$env:APPDATA\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt" -Tail 80
 ```
 
-### Eventos relevantes
+### Relevant events
 ```powershell
-# processos criados na última hora (requer auditoria de criação de processo habilitada)
+# processes created in the last hour (requires process creation auditing enabled)
 Get-WinEvent -FilterHashtable @{LogName='Security'; Id=4688; StartTime=(Get-Date).AddHours(-1)} -MaxEvents 60 -ErrorAction SilentlyContinue |
   Select-Object TimeCreated,@{n='Msg';e={$_.Message -split "`n" | Select-String 'New Process Name|Command Line'}}
 
@@ -75,7 +75,7 @@ Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-PowerShell/Operationa
   Select-Object TimeCreated,Message | Format-List
 ```
 
-### Arquivos recém-criados nos lugares de sempre
+### Recently created files in the usual places
 ```powershell
 Get-ChildItem "$env:TEMP","$env:APPDATA","$env:LOCALAPPDATA","$env:ProgramData","$env:USERPROFILE\Downloads" -Recurse -File -ErrorAction SilentlyContinue |
   Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-6) -and $_.Extension -match '^\.(exe|dll|ps1|bat|vbs|js|scr|lnk|jar|hta)$' } |
@@ -84,7 +84,7 @@ Get-ChildItem "$env:TEMP","$env:APPDATA","$env:LOCALAPPDATA","$env:ProgramData",
 
 ---
 
-## Persistência — enumerar antes de remover
+## Persistence — enumerate before removing
 
 ```powershell
 # Run keys
@@ -97,111 +97,111 @@ Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run',
 Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup",
               "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Startup" -ErrorAction SilentlyContinue
 
-# Tarefas agendadas criadas recentemente
+# Recently created scheduled tasks
 Get-ScheduledTask | Where-Object { $_.Date -gt (Get-Date).AddDays(-14) } |
   Select-Object TaskName,TaskPath,Date,@{n='Action';e={$_.Actions.Execute}} | Format-Table -AutoSize
 
-# Serviços com binário fora de System32
+# Services with a binary outside System32
 Get-CimInstance Win32_Service | Where-Object { $_.PathName -notmatch 'System32|Program Files' } |
   Select-Object Name,State,StartMode,PathName | Format-Table -AutoSize
 
-# WMI event subscription (persistência fileless)
+# WMI event subscription (fileless persistence)
 Get-CimInstance -Namespace root\Subscription -ClassName __EventFilter -ErrorAction SilentlyContinue
 Get-CimInstance -Namespace root\Subscription -ClassName CommandLineEventConsumer -ErrorAction SilentlyContinue
 
-# Exclusões plantadas no Defender (atacante cegando a defesa)
+# Exclusions planted in Defender (attacker blinding the defense)
 Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
 Get-MpPreference | Select-Object -ExpandProperty ExclusionProcess
 ```
 
-Exclusão do Defender que o usuário não criou é evidência forte de comprometimento.
+A Defender exclusion the user did not create is strong evidence of compromise.
 
 ---
 
-## Credenciais — a parte que mais importa
+## Credentials — the part that matters most
 
-A categoria de malware commodity mais comum hoje é **infostealer**. Em segundos ele
-coleta: senhas salvas no browser, cookies de sessão (que burlam MFA), tokens do Discord,
-carteiras cripto, chaves SSH, arquivos `.env`, credenciais de AWS/gcloud.
+The most common commodity malware category today is the **infostealer**. Within seconds it
+collects: passwords saved in the browser, session cookies (which bypass MFA), Discord tokens,
+crypto wallets, SSH keys, `.env` files, AWS/gcloud credentials.
 
-Se houve execução bem-sucedida, **assuma vazamento total das credenciais daquela máquina**.
+If execution succeeded, **assume every credential on that machine has leaked**.
 
-Rotacione **a partir de outro dispositivo limpo**, nesta ordem:
-1. E-mail principal (é a chave de recuperação de todo o resto) — senha + **encerrar todas as sessões**
-2. Gerenciador de senhas — senha mestra
-3. Contas financeiras e cripto (mover fundos se houver carteira quente na máquina)
-4. GitHub/GitLab: senha, revogar PAT e OAuth apps, trocar chave SSH
-5. Cloud: rotacionar access keys AWS/GCP/Azure, revogar service accounts
-6. Redes sociais e Discord/Telegram — encerrar sessões
-7. VPN corporativa, SSH keys de servidor (e revisar `authorized_keys` nos servidores)
+Rotate **from another clean device**, in this order:
+1. Primary e-mail (it is the recovery key for everything else) — password + **sign out of all sessions**
+2. Password manager — master password
+3. Financial and crypto accounts (move funds if there was a hot wallet on the machine)
+4. GitHub/GitLab: password, revoke PATs and OAuth apps, replace the SSH key
+5. Cloud: rotate AWS/GCP/Azure access keys, revoke service accounts
+6. Social networks and Discord/Telegram — sign out of all sessions
+7. Corporate VPN, server SSH keys (and review `authorized_keys` on the servers)
 
-**Encerrar sessões é tão importante quanto trocar a senha.** Cookie roubado continua
-funcionando depois da troca de senha e não pede MFA.
+**Terminating sessions is as important as changing the password.** A stolen cookie keeps
+working after the password change and does not prompt for MFA.
 
-Trocar senha *na máquina infectada* é inútil — o stealer captura a nova.
+Changing a password *on the infected machine* is useless — the stealer captures the new one.
 
 ---
 
-## Erradicação
+## Eradication
 
-Scan completo, agora com remediação ligada:
+Full scan, now with remediation enabled:
 ```powershell
 Update-MpSignature
 Start-MpScan -ScanType FullScan
 Get-MpThreatDetection | Sort-Object InitialDetectionTime -Descending | Select-Object -First 20
 ```
 
-Offline scan (roda antes do Windows carregar — pega o que se esconde em runtime):
+Offline scan (runs before Windows loads — catches what hides at runtime):
 ```powershell
-Start-MpWDOScan   # reinicia a máquina
+Start-MpWDOScan   # reboots the machine
 ```
 
-### Quando reimagear (seja franco com o usuário)
-Reinstalação limpa é a única remediação confiável quando:
-- Malware executou com privilégio de administrador
-- Há sinal de rootkit/bootkit, ou o AV não consegue remover
-- Ransomware criptografou arquivos
-- É máquina que guarda credencial de produção, cliente ou carteira cripto
-- Não dá pra determinar o escopo com confiança
+### When to reimage (be frank with the user)
+A clean reinstall is the only reliable remediation when:
+- The malware ran with administrator privileges
+- There are signs of a rootkit/bootkit, or the AV cannot remove it
+- Ransomware encrypted files
+- The machine holds production, customer or crypto wallet credentials
+- The scope cannot be determined with confidence
 
-Não prometa "limpei, tá seguro" quando a evidência não sustenta. Diga o que foi
-verificado, o que não foi, e recomende a reimagem quando for o caso.
+Do not promise "I cleaned it, it's safe" when the evidence does not support it. State what
+was verified, what was not, and recommend reimaging when warranted.
 
-Após reimagem: restaurar **dados**, nunca executáveis ou instaladores do backup anterior
-à infecção sem verificação.
-
----
-
-## Ransomware — específico
-
-- **Não pagar** — não garante chave e financia a operação.
-- Não renomear nem "consertar" os arquivos criptografados.
-- Preservar: nota de resgate + 2-3 arquivos criptografados + as versões originais se
-  existirem em backup — servem pra identificar a família.
-- Verificar se há decryptor público (No More Ransom) pela família identificada.
-- Verificar shadow copies antes que sejam apagadas: `vssadmin list shadows`
-- Isolar backups **imediatamente** — ransomware moderno procura e criptografa backups
-  em rede e nuvem sincronizada.
-- Se for ambiente corporativo com dado pessoal: há prazo legal de notificação (LGPD,
-  ANPD). Avise que existe essa obrigação, sem dar consultoria jurídica.
+After reimaging: restore **data**, never executables or installers from a backup taken before
+the infection without verification.
 
 ---
 
-## Linux / VPS comprometida
+## Ransomware — specifics
+
+- **Do not pay** — it does not guarantee the key and it funds the operation.
+- Do not rename or "fix" the encrypted files.
+- Preserve: the ransom note + 2-3 encrypted files + the original versions if they exist in
+  a backup — they help identify the family.
+- Check whether a public decryptor exists (No More Ransom) for the identified family.
+- Check shadow copies before they get deleted: `vssadmin list shadows`
+- Isolate backups **immediately** — modern ransomware seeks out and encrypts network and
+  cloud-synced backups.
+- In a corporate environment holding personal data: there are legal notification deadlines
+  (e.g. GDPR, LGPD). Point out that the obligation exists, without giving legal advice.
+
+---
+
+## Compromised Linux / VPS
 
 ```bash
-# processos e rede
+# processes and network
 ps auxf
 ss -tunap | grep ESTAB
 lsof -i -P -n 2>/dev/null | grep ESTABLISHED
 
-# persistência
+# persistence
 crontab -l; ls -la /etc/cron.*; cat /etc/crontab
 systemctl list-units --type=service --state=running
 ls -la /etc/systemd/system/ /root/.ssh/ ~/.ssh/
 cat ~/.ssh/authorized_keys /root/.ssh/authorized_keys 2>/dev/null
 
-# arquivos recentes e binários em lugar errado
+# recent files and binaries in the wrong place
 find /tmp /dev/shm /var/tmp -type f -mmin -240 -ls 2>/dev/null
 find / -xdev -type f -perm -4000 -mmin -1440 -ls 2>/dev/null
 
@@ -210,7 +210,7 @@ last -20; lastb -20 2>/dev/null
 grep -i 'accepted\|failed password' /var/log/auth.log | tail -40
 ```
 
-Chave SSH desconhecida em `authorized_keys` = backdoor. Remover **e** rotacionar todas as
-chaves, **e** verificar os outros servidores que aceitam a mesma chave.
+An unknown SSH key in `authorized_keys` = backdoor. Remove it **and** rotate all keys,
+**and** check the other servers that accept the same key.
 
-Para hardening pós-limpeza do servidor, passe para o skill **sentinel**.
+For post-cleanup server hardening, hand over to the **sentinel** skill.

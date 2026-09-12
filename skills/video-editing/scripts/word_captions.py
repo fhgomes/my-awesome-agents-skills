@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
-"""Legendas word-level (estilo CapCut/Reels) com faster-whisper GPU.
+"""Word-level captions (CapCut/Reels style) with faster-whisper on the GPU.
 
-Transcreve com word_timestamps=True, agrupa em blocos curtos (2-3 palavras)
-e gera .ass pronto para queimar (ffmpeg -vf ass=...) + .srt dos mesmos blocos.
+Transcribes with word_timestamps=True, groups into short blocks (2-3 words)
+and writes a burn-ready .ass (ffmpeg -vf ass=...) + an .srt of the same blocks.
 
-Uso:
-  python word_captions.py VIDEO --out-dir DIR --base NOME [--language en]
-      [--prompt "nomes e jargão"] [--max-words 3] [--max-dur 1.2]
+Usage:
+  python word_captions.py VIDEO --out-dir DIR --base NAME [--language en]
+      [--prompt "names and jargon"] [--max-words 3] [--max-dur 1.2]
       [--res 1080x1920] [--font "Arial Black"] [--font-size 88]
       [--margin-v 400] [--no-upper]
 
-IMPORTANTE: transcreva o VÍDEO JÁ CORTADO (timestamps nascem certos no
-timeline final). Queima depois (WSL): ffmpeg -nostdin -y -i corte.mp4
+IMPORTANT: transcribe the ALREADY-CUT video (timestamps are born correct on the
+final timeline). Burn afterwards, e.g. on WSL: ffmpeg -nostdin -y -i cut.mp4
   -vf "ass=/tmp/subs.ass:fontsdir=/mnt/c/Windows/Fonts"
-  -c:v libx264 -crf 18 -preset slow -c:a copy saida.mp4
+  -c:v libx264 -crf 18 -preset slow -c:a copy out.mp4
+(on WSL, fontsdir=/mnt/c/Windows/Fonts gives libass the Windows fonts.)
 """
 import argparse
 import ctypes
@@ -29,8 +30,8 @@ sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 
 def setup_cuda_dlls():
-    """Windows: ctranslate2 não acha as DLLs pip da NVIDIA sozinho —
-    precisa de PATH + pré-carga ctypes ANTES do import (add_dll_directory não basta)."""
+    """Windows: ctranslate2 cannot find NVIDIA's pip DLLs on its own — it needs
+    PATH + a ctypes preload BEFORE the import (add_dll_directory is not enough)."""
     roots = []
     for sp in site.getsitepackages() + [site.getusersitepackages()]:
         if sp and os.path.isdir(os.path.join(sp, "nvidia")):
@@ -57,7 +58,7 @@ def setup_cuda_dlls():
                 try:
                     ctypes.WinDLL(p)
                 except OSError as e:
-                    print(f"[setup] preload FALHOU {name}: {e}", flush=True)
+                    print(f"[setup] preload FAILED {name}: {e}", flush=True)
                 break
 
 
@@ -78,8 +79,8 @@ def fmt_ass(t):
 
 
 def group_words(words, max_words, max_dur, max_gap=0.6):
-    """Agrupa palavras em blocos curtos; quebra em pontuação forte, limite de
-    palavras, duração ou pausa. Estende o fim até a próxima palavra (sem piscar)."""
+    """Group words into short blocks; break on strong punctuation, word limit,
+    duration or pause. Extend the end up to the next word (no flicker)."""
     blocks = []
     cur = []
     for w in words:
@@ -142,12 +143,12 @@ def main():
     for ct in ("int8_float16", "int8"):
         try:
             model = WhisperModel("large-v3", device="cuda", compute_type=ct)
-            print(f"[load] large-v3 cuda {ct} em {time.perf_counter() - t0:.1f}s", flush=True)
+            print(f"[load] large-v3 cuda {ct} in {time.perf_counter() - t0:.1f}s", flush=True)
             break
         except Exception as e:
-            print(f"[load] {ct} falhou: {e}", flush=True)
+            print(f"[load] {ct} failed: {e}", flush=True)
     if model is None:
-        print("[fatal] GPU indisponível — NÃO caia para CPU sem perguntar ao usuário", flush=True)
+        print("[fatal] GPU unavailable — do NOT fall back to CPU without asking the user", flush=True)
         sys.exit(2)
 
     t1 = time.perf_counter()
@@ -161,13 +162,13 @@ def main():
         for w in seg.words or []:
             words.append({"start": w.start, "end": w.end, "word": w.word})
     took = time.perf_counter() - t1
-    print(f"[done] {took:.1f}s | {len(words)} palavras | "
-          f"{info.duration / took:.1f}x tempo real", flush=True)
+    print(f"[done] {took:.1f}s | {len(words)} words | "
+          f"{info.duration / took:.1f}x realtime", flush=True)
 
     blocks = group_words(words, args.max_words, args.max_dur)
     if not args.no_upper:
         blocks = [(s, e, t.upper()) for s, e, t in blocks]
-    print(f"[blocks] {len(blocks)} blocos (média {info.duration / max(len(blocks), 1):.1f}s)",
+    print(f"[blocks] {len(blocks)} blocks (avg {info.duration / max(len(blocks), 1):.1f}s)",
           flush=True)
 
     w, h = args.res.lower().split("x")
