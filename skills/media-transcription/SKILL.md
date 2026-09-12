@@ -222,6 +222,68 @@ holds everything transcribed so far.
 3. **Sample read**: the beginning plus one stretch from the middle; note
    suspicious terms (wrong proper nouns) as a review to-do for the user.
 
+## Synthetic timestamps: correct text, unusable timing
+
+A distinct failure from the hallucination loop above, and more dangerous
+because **the text is right**. On a long recording the VAD can lose its
+reference and the model falls back to slicing the rest of the file at a fixed
+interval. You get a complete, accurate transcript whose timestamps are fiction.
+
+Nothing in the text looks wrong. Reading the first blocks does not reveal it
+either — the real timing usually survives the first minute or two, so a
+spot-check at the top passes. The only reliable detection is statistical:
+
+```bash
+python - "$SRT" <<'EOF'
+import re, sys, collections
+t = open(sys.argv[1], encoding='utf-8').read()
+d = []
+for m in re.finditer(r'(\d\d):(\d\d):(\d\d),(\d\d\d) --> (\d\d):(\d\d):(\d\d),(\d\d\d)', t):
+    g = [int(x) for x in m.groups()]
+    a = g[0]*3600 + g[1]*60 + g[2] + g[3]/1000
+    b = g[4]*3600 + g[5]*60 + g[6] + g[7]/1000
+    d.append(round(b - a, 3))
+c = collections.Counter(d)
+top, n = c.most_common(1)[0]
+print(f'blocks={len(d)} most common={top}s x{n} ({100*n//len(d)}%)')
+print('SYNTHETIC' if n > len(d) * 0.5 else 'healthy')
+EOF
+```
+
+Healthy speech gives a spread of durations (roughly 0.3–30 s, no single value
+dominating). One value covering more than half the blocks means the timing is
+synthetic from that point on. A real case: 1204 of 1250 blocks at exactly
+2.000 s, real timing only up to 00:01:11 of a 45-minute file.
+
+**Fix — regenerate the timing, keep the text.** Re-running the same transcriber
+reproduces the problem. Use a word-level pass instead (in this repo,
+`video-editing/scripts/word_captions.py`), which forces per-word timestamps and
+does not depend on the same segmentation:
+
+```bash
+python ../video-editing/scripts/word_captions.py "$AUDIO"   --out-dir "$OUT" --base "$BASE" --language "$LANG"
+```
+
+Validate the output with the same statistic before trusting it.
+
+**Remapping planned cuts.** If cut points were already chosen against the bad
+SRT, do not shift them by hand. `scripts/remap_timestamps.py` re-locates each
+one by **text anchor**: it reads the phrase around the old timestamp, finds
+that phrase in the word-level SRT, and returns the real time.
+
+```bash
+python scripts/remap_timestamps.py --synthetic bad.srt --words good.srt   --cuts cuts.json --out remapped.json
+```
+
+Two things to expect. The drift is usually systematic, not random — a
+consistent median offset across every cut is a good sign the remap is sound;
+scattered offsets mean something else is wrong. And anchors fail on short or
+generic phrases: those fall back to the median offset and **must be confirmed
+by ear** before they reach an encoder. The script marks which is which.
+
+Cheap prevention on any recording longer than ~20 minutes: run the statistic
+right after transcribing, before anyone plans a cut on those numbers.
+
 ## Partitioned recordings (several videos of the same session)
 
 - Sort by the timestamps in the file names (`VID_YYYYMMDD_HHMMSS`); transcribe
