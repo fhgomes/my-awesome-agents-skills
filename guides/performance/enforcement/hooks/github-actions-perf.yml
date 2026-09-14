@@ -1,0 +1,60 @@
+# github-actions-perf.yml — layer 3 of guides/performance/enforcement.
+# Copy to .github/workflows/perf.yml and adjust paths, then mark the three jobs
+# as required checks on the default branch.
+#
+# The lhci step is Verified against
+#   https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/getting-started.md on 2026-09-07.
+# The k6 steps are Verified against
+#   https://github.com/grafana/setup-k6-action and https://github.com/grafana/run-k6-action on 2026-09-07.
+# actions/checkout and actions/setup-node are standard GitHub actions, not AI-tool syntax.
+
+name: performance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.15.x
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  k6-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/setup-k6-action@v1
+      - uses: grafana/run-k6-action@v1
+        with:
+          path: |
+            ./perf/k6-smoke.js
+          flags: --env BASE_URL=${{ vars.STAGING_URL }}
+
+  perf-checklist:
+    # The diff needs a base branch; on a push to main there is none, so run it on PRs only.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Performance anti-pattern checklist over the PR diff
+        env:
+          PERF_HOOK_BLOCK: "1"
+        run: |
+          chmod +x scripts/perf-review-checklist.sh
+          bash scripts/perf-review-checklist.sh --diff "origin/${{ github.base_ref }}"

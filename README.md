@@ -23,6 +23,10 @@ skills/          # Universal, self-contained skills — each folder works standa
     references/  # Reference material bundled with the skill (when needed)
     scripts/     # Helper scripts (when needed)
 
+guides/          # Vendor-neutral engineering guides — each area self-contained
+  testing/       # Guides + enforcement/ (per-AI-tool configs, git hooks, CI gate)
+  performance/   # Guides + enforcement/ (per-AI-tool configs, grep hook, Lighthouse CI, k6)
+
 claude/          # Claude-format variants (SKILL.md + references/ loaded on demand)
   skills/
     <name>/
@@ -47,6 +51,8 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | [media-transcription](skills/media-transcription/SKILL.md) | Audio/video transcription — faster-whisper large-v3 on GPU (local) or YouTube transcript (remote), with environment detection, fail-fast, and a quality/QA playbook |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
 | [openclaw-specialist](skills/openclaw-specialist/SKILL.md) | End-to-end OpenClaw ops — config protocol, cron authoring, channels, upgrades, diagnostics |
+| [perf-engineer](skills/perf-engineer/SKILL.md) | Performance engineer persona — measures before claiming, reviews diffs for N+1 / unpaged reads / missing indexes / unmeasured claims, answers as Diagnosis / Evidence / Fix / Verification / Budget; bundled checklists and Day 1 / Week 1 plans |
+| [test-engineer](skills/test-engineer/SKILL.md) | Test engineering specialist — picks the layer (integration-first, mocks for pure logic), demands red-then-green with pasted output, refuses weakened assertions / `@Disabled` / `.only`, 403-never-404 ownership probes, fake-coverage greps, review checklist |
 | [video-editing](skills/video-editing/SKILL.md) | CLI video editing with ffmpeg — frame-accurate cuts, 9:16/1:1/4:5 formats, CapCut-style word-level captions, xfade catalog, zoom+flash+whoosh transitions, color grading, runtime GPU/NVENC detection, with a [parameterized example pipeline](skills/video-editing/examples/interview-clip-pipeline/) |
 
 ## Security
@@ -81,6 +87,17 @@ Sentinel is a cybersecurity specialist agent focused on:
 Two self-contained variants:
 - [skills/sentinel/](skills/sentinel/) — drop-in skill (SKILL.md + bundled playbooks) for any runtime
 - [openclaw/security/agents/sentinel/](openclaw/security/agents/sentinel/) — full OpenClaw agent config (SOUL.md, TOOLS.md, playbooks)
+
+## Engineering Guides
+
+Vendor-neutral guides for teams that ship with AI coding tools. Each area separates **recommendations** (the guides) from **enforcement** (instruction blocks, hooks and CI gates for Claude Code, Codex, Gemini CLI, GitHub Copilot, Cursor, Cline and aider — so any model, DeepSeek included, is held to the same rules). Every AI-tool config block is either verified against the vendor's docs on a stated date or marked unverified.
+
+| Area | Description |
+|------|-------------|
+| [Testing](guides/testing/README.md) | From zero to a trusted suite: layers, Day 1 / Week 1 for greenfield and legacy, Spring (Testcontainers, MockMvc), React (vitest, Testing Library), Flutter, Playwright E2E with a production guard, the AI prompt template and a 12-smell catalogue |
+| [Testing Enforcement](guides/testing/enforcement/README.md) | Making the rules mandatory: instruction blocks, post-edit and stop hooks per AI tool, git `pre-commit` + `commit-msg` scripts, a GitHub Actions required check with a feat/fix-needs-a-test guard |
+| [Performance](guides/performance/README.md) | Measure first, budgets in CI, the eight ways an AI silently writes slow code, backend (Spring Boot + PostgreSQL), frontend (React + Vite) and mobile (Flutter) practice, Day 1 / Week 1 for greenfield and legacy |
+| [Performance Enforcement](guides/performance/enforcement/README.md) | Instruction blocks, verified hook configs per AI tool, a grep checklist hook, Lighthouse CI + k6 thresholds and a GitHub Actions workflow |
 
 ## Best Practice Guides
 
