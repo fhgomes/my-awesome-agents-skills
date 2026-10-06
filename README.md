@@ -45,6 +45,7 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 
 | Skill | Description |
 |-------|-------------|
+| [andela-profile](skills/andela-profile/SKILL.md) | Fill in or rewrite an Andela talent profile from the user's CV through the logged-in browser — field map and limits, markdown rules per field, automatic skill extraction, site-specific automation traps (Enter submits from the skills box, checkbox ignores programmatic input), reload-and-verify |
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
 | [consistent-visual-generation](skills/consistent-visual-generation/SKILL.md) | Consistent AI character/persona generation — Character Bible, canonical references, 6-round interview, file/version conventions, canon promotion, and calibration of subtle identity cues |
 | [harness-engineer](skills/harness-engineer/SKILL.md) | Identify a repo deeply and harvest its patterns, conventions, and business rules into an AI harness — router AGENTS.md + vendor files + routed guides so any coding agent works with more context and quality. Also available in [Claude skill format](claude/skills/harness-engineer/) (SKILL.md + on-demand references) |
