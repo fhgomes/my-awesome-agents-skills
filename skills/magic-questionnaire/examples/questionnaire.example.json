@@ -1,0 +1,94 @@
+{
+  "id": "intro-call-qualifier",
+  "version": 1,
+  "brand": { "accent": "#7c3aed" },
+  "steps": [
+    {
+      "id": "stage",
+      "type": "single",
+      "layout": "list",
+      "emoji": "🧭",
+      "title": "Where are you in your career right now?",
+      "why": "So we only recommend what fits your stage.",
+      "options": [
+        { "id": "beginner", "emoji": "🌱", "label": "Just starting out", "hint": "First job, or under two years in the field", "reaction": "Early is a great time to build the right habits — we'll point you to the best starting place.", "score": { "fit": 0 }, "route": "not-a-fit" },
+        { "id": "above-title", "emoji": "📈", "label": "Mid-level, doing more than my title", "hint": "I deliver, but the title and pay don't follow", "reaction": "That gap is exactly what this program is built for.", "score": { "fit": 3 } },
+        { "id": "next-step", "emoji": "🎯", "label": "Senior, aiming for the next step", "hint": "Staff, principal, or a role abroad", "reaction": "Great baseline — now it's about the details that set you apart.", "score": { "fit": 2 } },
+        { "id": "leading", "emoji": "🧩", "label": "Leading people or architecture", "hint": "And I want a wider reach", "reaction": "Leadership changes what 'impact' means — good place to sharpen it.", "score": { "fit": 1 } }
+      ]
+    },
+    {
+      "id": "awareness",
+      "type": "single",
+      "layout": "list",
+      "emoji": "💼",
+      "title": "What does your work do for the business?",
+      "why": "How you explain your work shapes how others value it.",
+      "options": [
+        { "id": "in-numbers", "emoji": "📊", "label": "I can explain it in numbers", "hint": "Revenue, cost, risk, uptime", "reaction": "Rare and valuable — we'll make sure it shows up everywhere it counts.", "score": { "fit": 0 } },
+        { "id": "freeze", "emoji": "😶", "label": "I know the impact, but freeze explaining it", "hint": "It's clear in my head, not out loud", "reaction": "Very common — and very trainable.", "score": { "fit": 2 } },
+        { "id": "what-not-why", "emoji": "⚙️", "label": "I know what it does, not why it matters", "hint": "I can describe the system, not its value", "reaction": "This is the most common pattern we see, and the most fixable one.", "score": { "fit": 2 }, "educate": true },
+        { "id": "never-thought", "emoji": "🤔", "label": "I've never really thought about it", "hint": "I just build what's asked", "reaction": "Honest answer — and the best possible starting point.", "score": { "fit": 1 }, "educate": true }
+      ]
+    },
+    {
+      "id": "visibility",
+      "type": "single",
+      "layout": "list",
+      "emoji": "👀",
+      "title": "When did someone above you last notice your impact?",
+      "why": "Being good and being seen are different problems.",
+      "options": [
+        { "id": "recognized", "emoji": "🏅", "label": "It's recognized and cited", "hint": "My manager brings it up without me asking", "reaction": "Excellent — let's turn that recognition into leverage.", "score": { "fit": 0 } },
+        { "id": "firefighter", "emoji": "🧯", "label": "Only when something breaks", "hint": "I'm visible when I put out fires", "reaction": "The firefighter trap — valuable to everyone, promoted by no one. Fixable.", "score": { "fit": 2 } },
+        { "id": "team-only", "emoji": "👥", "label": "My team knows, my manager doesn't", "hint": "Peers rely on me; it doesn't travel upward", "reaction": "That's a story problem, not a skill problem.", "score": { "fit": 2 } },
+        { "id": "unsure", "emoji": "🌫️", "label": "Honestly, I don't know if anyone sees it", "hint": "I deliver and it disappears", "reaction": "You're far from alone. Naming it is the first step.", "score": { "fit": 1 } }
+      ]
+    },
+    {
+      "id": "blocker",
+      "type": "single",
+      "layout": "grid",
+      "emoji": "🧱",
+      "title": "What actually holds you back?",
+      "why": "The real blocker is rarely technical.",
+      "options": [
+        { "id": "stability", "emoji": "🏠", "label": "Fear of losing stability", "hint": "What I built feels risky to leave", "reaction": "Reasonable fear — we plan moves that don't bet everything.", "score": { "fit": 1 } },
+        { "id": "interviews", "emoji": "🎤", "label": "Interviews", "hint": "I freeze explaining what I know", "reaction": "Interviews are a skill of their own, and they can be practiced.", "score": { "fit": 1 } },
+        { "id": "hero", "emoji": "🦸", "label": "I'm the one who fixes everything", "hint": "Hard to delegate, hard to step back", "reaction": "Being indispensable is a trap. We'll work on getting out of it.", "score": { "fit": 1 } },
+        { "id": "exhausted", "emoji": "🔋", "label": "I'm running on empty", "hint": "Questioning whether I can do it", "reaction": "Thanks for saying it. Pace matters as much as the plan.", "score": { "fit": 1 } }
+      ]
+    },
+    {
+      "id": "aspiration",
+      "type": "text",
+      "optional": true,
+      "emoji": "✨",
+      "title": "What would change if you got there?",
+      "why": "Optional — but it's the answer we read first.",
+      "placeholder": "Title, money, role, country, time back…"
+    },
+    {
+      "id": "contact",
+      "type": "contact",
+      "emoji": "📬",
+      "title": "Where should we send your result?",
+      "why": "We'll email your profile summary and next step. Nothing else.",
+      "fields": ["email", "name"]
+    }
+  ],
+  "education": {
+    "problem": "Promotions are rarely decided by who writes the best code. They're decided by who can translate delivery into business impact — and most strong engineers were never taught to.",
+    "solution": "We dig into your real deliveries and turn them into impact stories your manager, a recruiter or a hiring panel can repeat."
+  },
+  "routes": [
+    { "id": "book", "when": { "fit": { "gte": 5 } }, "title": "Let's talk", "body": "Your profile is exactly who this program is for. Pick a 30-minute intro call — we'll already know your context.", "cta": { "label": "Book my intro call →", "href": "#book" } },
+    { "id": "nurture", "when": { "fit": { "gte": 2 } }, "title": "Start with the guide", "body": "You're in a strong position. The free guide covers the next moves at your stage — we'll check in after.", "cta": { "label": "Send me the guide →", "href": "#guide" } },
+    { "id": "not-a-fit", "default": true, "title": "Not the right fit — yet", "body": "This program works best with a few years of delivery to build on. Here's a resource that fits where you are now.", "cta": { "label": "Open the beginner resource →", "href": "#beginner" } }
+  ],
+  "readback": [
+    { "when": { "fit": { "gte": 6 } }, "text": "You're delivering above your title, and the gap is the story, not the skill." },
+    { "when": { "fit": { "gte": 3 } }, "text": "You have real delivery to build on — the next step is making it visible." },
+    { "default": true, "text": "You're early in the journey — the best investment now is depth in your craft." }
+  ]
+}

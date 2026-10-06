@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magic questionnaire demo</title>
+<style>
+  :root {
+    --accent: #7c3aed;
+    --page: #f1f3fb;
+    --card: #ffffff;
+    --text: #111827;
+    --muted: #4b5563;
+    --line: #e5e7eb;
+    --line-hover: #d1d5db;
+    --tile: #f3f4f6;
+    --hover: #f9fafb;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--page); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; }
+  .card { width: 100%; max-width: 36rem; background: var(--card); border: 1px solid #f3f4f6;
+          border-radius: 24px; box-shadow: 0 10px 30px rgba(17,24,39,.08); overflow: hidden; }
+  .progress { height: 6px; background: var(--tile); }
+  .progress > div { height: 100%; background: var(--accent); width: 0; transition: width .5s ease-out; }
+  .body { padding: 32px; display: flex; flex-direction: column; gap: 20px; }
+  .head { text-align: center; }
+  .emoji { font-size: 40px; line-height: 1; margin-bottom: 8px; }
+  h1 { font-size: clamp(1.4rem, 4vw, 1.9rem); line-height: 1.2; margin: 0 0 8px; outline: none; }
+  .why { color: var(--muted); margin: 0; font-size: .95rem; }
+  .options { display: flex; flex-direction: column; gap: 12px; }
+  .options.grid { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 360px) { .options.grid { grid-template-columns: 1fr; } }
+  .opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 16px;
+         border: 2px solid var(--line); border-radius: 16px; background: var(--card); color: inherit;
+         font: inherit; text-align: left; cursor: pointer; transition: border-color .2s, background .2s; }
+  .opt:hover { border-color: var(--line-hover); background: var(--hover); }
+  .opt:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 2px; }
+  .opt[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, white); }
+  .grid .opt { flex-direction: column; text-align: center; justify-content: center; }
+  .tile { width: 40px; height: 40px; flex: none; border-radius: 12px; background: var(--tile);
+          display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .grid .tile { background: none; font-size: 28px; }
+  .opt[aria-checked="true"] .tile { background: var(--accent); }
+  .grid .opt[aria-checked="true"] .tile { background: none; }
+  .txt { flex: 1; }
+  .label { display: block; font-weight: 600; }
+  .opt[aria-checked="true"] .label { color: var(--accent); }
+  .hint { display: block; color: var(--muted); font-size: .85rem; }
+  .dot { width: 24px; height: 24px; flex: none; border: 2px solid var(--accent); border-radius: 50%;
+         display: none; align-items: center; justify-content: center; }
+  .dot::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+  .list .opt[aria-checked="true"] .dot { display: flex; }
+  .strip { border-radius: 12px; padding: 12px 16px; text-align: center; font-size: .9rem;
+           background: color-mix(in srgb, var(--accent) 10%, white); color: var(--accent); }
+  .strip:empty { display: none; }
+  .panel { border-radius: 12px; padding: 12px 16px; font-size: .9rem; border: 1px solid; }
+  .panel b { display: block; margin-bottom: 2px; }
+  .problem { background: #fef2f2; border-color: #fee2e2; color: #b91c1c; }
+  .solution { background: #f0fdf4; border-color: #dcfce7; color: #15803d; }
+  textarea, input { width: 100%; font: inherit; padding: 12px 14px; border: 2px solid var(--line);
+                    border-radius: 12px; background: var(--card); color: inherit; }
+  textarea { min-height: 120px; resize: vertical; }
+  textarea:focus, input:focus { outline: none; border-color: var(--accent); }
+  .field { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; font-weight: 600; }
+  .nav { display: flex; gap: 12px; }
+  .btn { min-height: 48px; border-radius: 12px; font: inherit; font-weight: 600; cursor: pointer; padding: 0 16px; }
+  .back { flex: 1; background: var(--card); border: 2px solid var(--line); color: var(--text); }
+  .next { flex: 2; background: var(--accent); border: 0; color: #fff; }
+  .next:disabled { opacity: .4; cursor: not-allowed; }
+  .stepno { margin-top: 16px; color: var(--muted); font-size: .85rem; }
+  .readback { font-size: 1.05rem; text-align: center; margin: 0; }
+  .cta { display: block; text-align: center; text-decoration: none; line-height: 48px; }
+  .restart { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="card" aria-live="off">
+  <div class="progress" aria-hidden="true"><div id="bar"></div></div>
+  <div class="body" id="app"></div>
+</main>
+<div class="stepno" id="stepno"></div>
+
+<!-- Paste your questionnaire config here (format: questionnaire.example.json). -->
+<script type="application/json" id="questionnaire">
+{
+  "id": "demo",
+  "version": 1,
+  "brand": { "accent": "#7c3aed" },
+  "steps": [
+    { "id": "stage", "type": "single", "layout": "list", "emoji": "🧭",
+      "title": "Where are you in your career right now?", "why": "So we only recommend what fits your stage.",
+      "options": [
+        { "id": "beginner", "emoji": "🌱", "label": "Just starting out", "hint": "First job, or under two years in the field", "reaction": "Early is a great time to build the right habits — we'll point you to the best starting place.", "score": { "fit": 0 }, "route": "not-a-fit" },
+        { "id": "above-title", "emoji": "📈", "label": "Mid-level, doing more than my title", "hint": "I deliver, but the title and pay don't follow", "reaction": "That gap is exactly what this program is built for.", "score": { "fit": 3 } },
+        { "id": "next-step", "emoji": "🎯", "label": "Senior, aiming for the next step", "hint": "Staff, principal, or a role abroad", "reaction": "Great baseline — now it's about the details that set you apart.", "score": { "fit": 2 } },
+        { "id": "leading", "emoji": "🧩", "label": "Leading people or architecture", "hint": "And I want a wider reach", "reaction": "Leadership changes what 'impact' means — good place to sharpen it.", "score": { "fit": 1 } } ] },
+    { "id": "awareness", "type": "single", "layout": "list", "emoji": "💼",
+      "title": "What does your work do for the business?", "why": "How you explain your work shapes how others value it.",
+      "options": [
+        { "id": "in-numbers", "emoji": "📊", "label": "I can explain it in numbers", "hint": "Revenue, cost, risk, uptime", "reaction": "Rare and valuable — we'll make sure it shows up everywhere it counts.", "score": { "fit": 0 } },
+        { "id": "freeze", "emoji": "😶", "label": "I know the impact, but freeze explaining it", "hint": "It's clear in my head, not out loud", "reaction": "Very common — and very trainable.", "score": { "fit": 2 } },
+        { "id": "what-not-why", "emoji": "⚙️", "label": "I know what it does, not why it matters", "hint": "I can describe the system, not its value", "reaction": "This is the most common pattern we see, and the most fixable one.", "score": { "fit": 2 }, "educate": true },
+        { "id": "never-thought", "emoji": "🤔", "label": "I've never really thought about it", "hint": "I just build what's asked", "reaction": "Honest answer — and the best possible starting point.", "score": { "fit": 1 }, "educate": true } ] },
+    { "id": "visibility", "type": "single", "layout": "list", "emoji": "👀",
+      "title": "When did someone above you last notice your impact?", "why": "Being good and being seen are different problems.",
+      "options": [
+        { "id": "recognized", "emoji": "🏅", "label": "It's recognized and cited", "hint": "My manager brings it up without me asking", "reaction": "Excellent — let's turn that recognition into leverage.", "score": { "fit": 0 } },
+        { "id": "firefighter", "emoji": "🧯", "label": "Only when something breaks", "hint": "I'm visible when I put out fires", "reaction": "The firefighter trap — valuable to everyone, promoted by no one. Fixable.", "score": { "fit": 2 } },
+        { "id": "team-only", "emoji": "👥", "label": "My team knows, my manager doesn't", "hint": "Peers rely on me; it doesn't travel upward", "reaction": "That's a story problem, not a skill problem.", "score": { "fit": 2 } },
+        { "id": "unsure", "emoji": "🌫️", "label": "Honestly, I don't know if anyone sees it", "hint": "I deliver and it disappears", "reaction": "You're far from alone. Naming it is the first step.", "score": { "fit": 1 } } ] },
+    { "id": "blocker", "type": "single", "layout": "grid", "emoji": "🧱",
+      "title": "What actually holds you back?", "why": "The real blocker is rarely technical.",
+      "options": [
+        { "id": "stability", "emoji": "🏠", "label": "Fear of losing stability", "hint": "What I built feels risky to leave", "reaction": "Reasonable fear — we plan moves that don't bet everything.", "score": { "fit": 1 } },
+        { "id": "interviews", "emoji": "🎤", "label": "Interviews", "hint": "I freeze explaining what I know", "reaction": "Interviews are a skill of their own, and they can be practiced.", "score": { "fit": 1 } },
+        { "id": "hero", "emoji": "🦸", "label": "I'm the one who fixes everything", "hint": "Hard to delegate, hard to step back", "reaction": "Being indispensable is a trap. We'll work on getting out of it.", "score": { "fit": 1 } },
+        { "id": "exhausted", "emoji": "🔋", "label": "I'm running on empty", "hint": "Questioning whether I can do it", "reaction": "Thanks for saying it. Pace matters as much as the plan.", "score": { "fit": 1 } } ] },
+    { "id": "aspiration", "type": "text", "optional": true, "emoji": "✨",
+      "title": "What would change if you got there?", "why": "Optional — but it's the answer we read first.",
+      "placeholder": "Title, money, role, country, time back…" },
+    { "id": "contact", "type": "contact", "emoji": "📬",
+      "title": "Where should we send your result?", "why": "We'll email your profile summary and next step. Nothing else.",
+      "fields": ["email", "name"] }
+  ],
+  "education": {
+    "problem": "Promotions are rarely decided by who writes the best code. They're decided by who can translate delivery into business impact — and most strong engineers were never taught to.",
+    "solution": "We dig into your real deliveries and turn them into impact stories your manager, a recruiter or a hiring panel can repeat."
+  },
+  "routes": [
+    { "id": "book", "when": { "fit": { "gte": 5 } }, "title": "Let's talk", "body": "Your profile is exactly who this program is for. Pick a 30-minute intro call — we'll already know your context.", "cta": { "label": "Book my intro call →", "href": "#book" } },
+    { "id": "nurture", "when": { "fit": { "gte": 2 } }, "title": "Start with the guide", "body": "You're in a strong position. The free guide covers the next moves at your stage — we'll check in after.", "cta": { "label": "Send me the guide →", "href": "#guide" } },
+    { "id": "not-a-fit", "default": true, "title": "Not the right fit — yet", "body": "This program works best with a few years of delivery to build on. Here's a resource that fits where you are now.", "cta": { "label": "Open the beginner resource →", "href": "#beginner" } }
+  ],
+  "readback": [
+    { "when": { "fit": { "gte": 6 } }, "text": "You're delivering above your title, and the gap is the story, not the skill." },
+    { "when": { "fit": { "gte": 3 } }, "text": "You have real delivery to build on — the next step is making it visible." },
+    { "default": true, "text": "You're early in the journey — the best investment now is depth in your craft." }
+  ]
+}
+</script>
+
+<script>
+(function () {
+  "use strict";
+  var config = JSON.parse(document.getElementById("questionnaire").textContent);
+  var steps = config.steps;
+  var storeKey = "mq:" + config.id + ":v" + config.version;
+  var app = document.getElementById("app");
+  var bar = document.getElementById("bar");
+  var stepno = document.getElementById("stepno");
+  if (config.brand && config.brand.accent) document.documentElement.style.setProperty("--accent", config.brand.accent);
+
+  function load() { try { return JSON.parse(localStorage.getItem(storeKey)) || null; } catch (e) { return null; } }
+  function save() { try { localStorage.setItem(storeKey, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
+  function newId() { return "anon-" + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+
+  var state = load() || { session_id: newId(), index: 0, answers: {}, contact: {}, started_at: new Date().toISOString() };
+
+  function emit(name, props) {
+    var detail = Object.assign({ event: name, questionnaire_id: config.id, version: config.version, session_id: state.session_id }, props || {});
+    window.dispatchEvent(new CustomEvent("questionnaire", { detail: detail }));
+    if (window.console) console.debug("[questionnaire]", detail);
+  }
+
+  function h(tag, attrs, children) {
+    var el = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === "text") el.textContent = attrs[k];
+      else if (k === "class") el.className = attrs[k];
+      else if (k.slice(0, 2) === "on") el.addEventListener(k.slice(2), attrs[k]);
+      else el.setAttribute(k, attrs[k]);
+    });
+    (children || []).forEach(function (c) { if (c) el.appendChild(c); });
+    return el;
+  }
+
+  function optionOf(step, id) { return (step.options || []).filter(function (o) { return o.id === id; })[0]; }
+
+  function matches(when, scores) {
+    return Object.keys(when || {}).every(function (dim) {
+      var v = scores[dim] || 0, c = when[dim];
+      return (c.gte === undefined || v >= c.gte) && (c.lte === undefined || v <= c.lte) && (c.eq === undefined || v === c.eq);
+    });
+  }
+  function pick(list, scores) {
+    var hit = list.filter(function (e) { return !e.default && matches(e.when, scores); })[0];
+    return hit || list.filter(function (e) { return e.default; })[0];
+  }
+  function resolve() {
+    var scores = {}, forced = null;
+    steps.forEach(function (s) {
+      if (s.type && s.type !== "single") return;
+      var o = optionOf(s, state.answers[s.id]);
+      if (!o) return;
+      Object.keys(o.score || {}).forEach(function (d) { scores[d] = (scores[d] || 0) + o.score[d]; });
+      if (!forced && o.route) forced = o.route;
+    });
+    var route = forced ? config.routes.filter(function (r) { return r.id === forced; })[0] : pick(config.routes, scores);
+    var readback = pick(config.readback || [], scores);
+    return { scores: scores, route: route, readback: readback };
+  }
+
+  function isValid(step) {
+    var type = step.type || "single";
+    if (type === "single") return !!state.answers[step.id];
+    if (type === "text") return step.optional || !!(state.answers[step.id] || "").trim();
+    if (type === "contact") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.contact.email || "");
+    return true;
+  }
+
+  function render() {
+    if (state.index >= steps.length) return renderResult();
+    var step = steps[state.index];
+    var type = step.type || "single";
+    bar.style.width = ((state.index + 1) / steps.length * 100) + "%";
+    stepno.textContent = "Step " + (state.index + 1) + " of " + steps.length;
+    app.textContent = "";
+
+    var title = h("h1", { id: "q-title", tabindex: "-1", text: step.title });
+    app.appendChild(h("div", { class: "head" }, [
+      step.emoji ? h("div", { class: "emoji", "aria-hidden": "true", text: step.emoji }) : null,
+      title,
+      step.why ? h("p", { class: "why", text: step.why }) : null
+    ]));
+
+    var next = h("button", { class: "btn next", type: "button", text: state.index === steps.length - 1 ? "See my result →" : "Continue →", onclick: advance });
+    function refresh() { next.disabled = !isValid(step); }
+
+    if (type === "single") renderOptions(step, refresh);
+    if (type === "text") {
+      var ta = h("textarea", { "aria-labelledby": "q-title", placeholder: step.placeholder || "" });
+      ta.value = state.answers[step.id] || "";
+      ta.addEventListener("input", function () { state.answers[step.id] = ta.value; save(); refresh(); });
+      app.appendChild(ta);
+    }
+    if (type === "contact") {
+      (step.fields || ["email"]).forEach(function (f) {
+        var input = h("input", { type: f === "email" ? "email" : "text", autocomplete: f === "email" ? "email" : "name" });
+        input.required = f === "email";
+        input.value = state.contact[f] || "";
+        input.addEventListener("input", function () { state.contact[f] = input.value.trim(); save(); refresh(); });
+        app.appendChild(h("label", { class: "field" }, [document.createTextNode(f === "email" ? "Email" : "Name (optional)"), input]));
+      });
+    }
+
+    app.appendChild(h("div", { class: "nav" }, [
+      state.index > 0 ? h("button", { class: "btn back", type: "button", text: "← Back", onclick: back }) : null,
+      next
+    ]));
+    refresh();
+    emit("questionnaire_step_viewed", { step_id: step.id, step_index: state.index });
+    title.focus();
+  }
+
+  function renderOptions(step, refresh) {
+    var group = h("div", { class: "options " + (step.layout === "grid" ? "grid" : "list"), role: "radiogroup", "aria-labelledby": "q-title" });
+    var strip = h("div", { class: "strip", "aria-live": "polite" });
+    var edu = h("div", { class: "options" });
+    var buttons = [];
+
+    function select(opt, focus) {
+      state.answers[step.id] = opt.id; save();
+      buttons.forEach(function (b) {
+        var on = b.dataset.id === opt.id;
+        b.setAttribute("aria-checked", on ? "true" : "false");
+        b.tabIndex = on ? 0 : -1;
+        if (on && focus) b.focus();
+      });
+      strip.textContent = opt.reaction || "";
+      edu.textContent = "";
+      if (opt.educate && config.education) {
+        edu.appendChild(h("div", { class: "panel problem" }, [h("b", { text: "⚠️ The problem" }), document.createTextNode(config.education.problem)]));
+        edu.appendChild(h("div", { class: "panel solution" }, [h("b", { text: "✨ The solution" }), document.createTextNode(config.education.solution)]));
+      }
+      refresh();
+      emit("questionnaire_answered", { step_id: step.id, option_id: opt.id });
+    }
+
+    step.options.forEach(function (opt, i) {
+      var b = h("button", { class: "opt", type: "button", role: "radio", "aria-checked": "false", "data-id": opt.id, tabindex: i === 0 ? "0" : "-1" }, [
+        h("span", { class: "tile", "aria-hidden": "true", text: opt.emoji || "" }),
+        h("span", { class: "txt" }, [h("span", { class: "label", text: opt.label }), h("span", { class: "hint", text: opt.hint || "" })]),
+        h("span", { class: "dot", "aria-hidden": "true" })
+      ]);
+      b.addEventListener("click", function () { select(opt, false); });
+      b.addEventListener("keydown", function (ev) {
+        var delta = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[ev.key];
+        if (delta) { ev.preventDefault(); select(step.options[(i + delta + step.options.length) % step.options.length], true); }
+        else if (ev.key === "Enter" && state.answers[step.id] === opt.id) { ev.preventDefault(); advance(); }
+      });
+      buttons.push(b); group.appendChild(b);
+    });
+    app.appendChild(group); app.appendChild(strip); app.appendChild(edu);
+    var current = optionOf(step, state.answers[step.id]);
+    if (current) select(current, false);
+  }
+
+  function advance() {
+    var step = steps[state.index];
+    if (!isValid(step)) return;
+    state.index += 1; save(); render();
+  }
+  function back() {
+    emit("questionnaire_back", { from_step_id: steps[state.index].id });
+    state.index = Math.max(0, state.index - 1); save(); render();
+  }
+
+  function renderResult() {
+    var r = resolve();
+    state.completed_at = state.completed_at || new Date().toISOString();
+    state.route = r.route && r.route.id; save();
+    bar.style.width = "100%"; stepno.textContent = "";
+    app.textContent = "";
+    var title = h("h1", { tabindex: "-1", text: r.route.title });
+    app.appendChild(h("div", { class: "head" }, [h("div", { class: "emoji", "aria-hidden": "true", text: "🎉" }), title]));
+    if (r.readback) app.appendChild(h("p", { class: "readback", text: r.readback.text }));
+    app.appendChild(h("p", { class: "why", text: r.route.body }));
+    var cta = h("a", { class: "btn next cta", href: r.route.cta.href, text: r.route.cta.label });
+    cta.addEventListener("click", function () { emit("questionnaire_cta_clicked", { route: r.route.id, href: r.route.cta.href }); });
+    app.appendChild(cta);
+    app.appendChild(h("button", { class: "restart", type: "button", text: "Start over", onclick: function () {
+      try { localStorage.removeItem(storeKey); } catch (e) { /* ignore */ }
+      state = { session_id: newId(), index: 0, answers: {}, contact: {}, started_at: new Date().toISOString() };
+      render();
+    } }));
+    emit("questionnaire_completed", { route: r.route.id, scores: r.scores, answers: state.answers });
+    title.focus();
+  }
+
+  emit("questionnaire_started", { entry: document.referrer || "direct" });
+  render();
+})();
+</script>
+</body>
+</html>
