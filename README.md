@@ -26,6 +26,7 @@ skills/          # Universal, self-contained skills — each folder works standa
 guides/          # Vendor-neutral engineering guides — each area self-contained
   testing/       # Guides + enforcement/ (per-AI-tool configs, git hooks, CI gate)
   performance/   # Guides + enforcement/ (per-AI-tool configs, grep hook, Lighthouse CI, k6)
+  model-selection/  # Which LLM and reasoning level, per-vendor facts, refresh procedure
 
 claude/          # Claude-format variants (SKILL.md + references/ loaded on demand)
   skills/
@@ -103,6 +104,7 @@ Vendor-neutral guides for teams that ship with AI coding tools. Each area separa
 | [Testing Enforcement](guides/testing/enforcement/README.md) | Making the rules mandatory: instruction blocks, post-edit and stop hooks per AI tool, git `pre-commit` + `commit-msg` scripts, a GitHub Actions required check with a feat/fix-needs-a-test guard |
 | [Performance](guides/performance/README.md) | Measure first, budgets in CI, the eight ways an AI silently writes slow code, backend (Spring Boot + PostgreSQL), frontend (React + Vite) and mobile (Flutter) practice, Day 1 / Week 1 for greenfield and legacy |
 | [Performance Enforcement](guides/performance/enforcement/README.md) | Instruction blocks, verified hook configs per AI tool, a grep checklist hook, Lighthouse CI + k6 thresholds and a GitHub Actions workflow |
+| [Model Selection](guides/model-selection/README.md) | Which LLM and which reasoning level: vendor-neutral rules (effort before model, middle tier by default), a cross-vendor tier map for Anthropic, OpenAI, Google, xAI and Moonshot, which models can turn reasoning off, an evaluation protocol, and a refresh procedure with official sources and a staleness check so the facts stay current |
 
 ## Best Practice Guides
 
