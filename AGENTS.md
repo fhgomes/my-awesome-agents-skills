@@ -47,6 +47,19 @@ Assume every byte you commit will be read by strangers and indexed by bots.
 Each item must work when copied out alone; cross-links are optional pointers,
 never prerequisites.
 
+## Codex entry point and validation
+
+Read this file and `CLAUDE.md` as repository policy, then load only the
+`SKILL.md` and references for the item being edited. Sources in `skills/`,
+`claude/skills/` and `openclaw/` are maintained artifacts; their presence does
+not install skills or activate runtime hooks in the current session.
+
+There is no root application build or single test suite. For documentation,
+check local links, frontmatter and referenced resources. When changing scripts,
+choose checks from the affected item after reading its instructions. The two
+auditors above remain required before any explicitly requested commit; do not
+claim they ran merely because they are documented here.
+
 ## When publishing from a private source
 
 Publish a sanitized, standalone copy: no origin banner, no private links, no
