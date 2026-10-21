@@ -290,19 +290,57 @@ for (let i = 0; i < slideCount; i++) {
   // Wait for intersection observer animations to trigger
   await page.waitForTimeout(200);
 
-  // Force all .reveal elements on the current slide to be visible
-  // (animations normally trigger on scroll/intersection, but we need them visible now)
+  // Force all .reveal elements on the current slide to be visible.
+  //
+  // Setting el.style.opacity on its own is NOT enough: a deck whose CSS has
+  // `.reveal { opacity: 0; transition: opacity 1s }` keeps the computed value
+  // at 0 while the transition is pending, so the screenshot catches an empty
+  // card with only the static parts drawn. That is how a 34-slide deck
+  // exported with 31 blank pages.
+  //
+  // The fix is a stylesheet with !important plus killing transitions, so there
+  // is nothing left to animate, and then a frame to let layout settle.
   await page.evaluate((index) => {
-    const slides = document.querySelectorAll('.slide');
-    const currentSlide = slides[index];
+    let sheet = document.getElementById('__export_reveal__');
+    if (!sheet) {
+      sheet = document.createElement('style');
+      sheet.id = '__export_reveal__';
+      sheet.textContent =
+        '.reveal, .slide .reveal, .slide.visible .reveal {' +
+        '  opacity: 1 !important;' +
+        '  transform: none !important;' +
+        '  visibility: visible !important;' +
+        '  transition: none !important;' +
+        '  animation: none !important;' +
+        '}';
+      document.head.appendChild(sheet);
+    }
+    const currentSlide = document.querySelectorAll('.slide')[index];
     if (currentSlide) {
       currentSlide.querySelectorAll('.reveal').forEach(el => {
-        el.style.opacity = '1';
-        el.style.transform = 'none';
-        el.style.visibility = 'visible';
+        el.style.setProperty('opacity', '1', 'important');
+        el.style.setProperty('transform', 'none', 'important');
+        el.style.setProperty('visibility', 'visible', 'important');
+        el.style.setProperty('transition', 'none', 'important');
       });
     }
   }, i);
+
+  // Let the forced styles take effect before measuring/screenshotting.
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+  // Fail loudly instead of writing a blank page: if a .reveal is still
+  // transparent, the screenshot would silently lose the slide's content.
+  const invisiveis = await page.evaluate((index) => {
+    const cur = document.querySelectorAll('.slide')[index];
+    if (!cur) return 0;
+    return [...cur.querySelectorAll('.reveal')]
+      .filter(el => parseFloat(getComputedStyle(el).opacity) < 0.99).length;
+  }, i);
+  if (invisiveis > 0) {
+    console.error(`  ! slide ${i + 1}: ${invisiveis} bloco(s) ainda invisível(is) — a página sairia em branco`);
+    process.exitCode = 1;
+  }
 
   await page.waitForTimeout(100);
 
