@@ -82,9 +82,13 @@ else
     OUTPUT_PDF="$(dirname "$INPUT_HTML")/$(basename "$INPUT_HTML" .html).pdf"
 fi
 
-# Resolve output to absolute path
+# Resolve output to an ABSOLUTE path.
+# This matters: further down the script does `cd "$TEMP_DIR"`, so a relative
+# output path would resolve against the temp dir and the PDF would be written
+# there and deleted on cleanup — while the script still printed "success".
 OUTPUT_DIR=$(dirname "$OUTPUT_PDF")
 mkdir -p "$OUTPUT_DIR"
+OUTPUT_DIR=$(cd "$OUTPUT_DIR" && pwd)
 OUTPUT_PDF="$OUTPUT_DIR/$(basename "$OUTPUT_PDF")"
 
 echo ""
@@ -423,6 +427,10 @@ rm -rf "$TEMP_DIR"
 
 echo ""
 echo -e "${BOLD}════════════════════════════════════════${NC}"
+if [[ ! -f "$OUTPUT_PDF" ]]; then
+    err "Export failed: $OUTPUT_PDF was not created."
+    exit 1
+fi
 ok "PDF exported successfully!"
 echo ""
 echo -e "  ${BOLD}File:${NC}  $OUTPUT_PDF"
