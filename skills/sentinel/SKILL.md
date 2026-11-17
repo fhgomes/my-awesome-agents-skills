@@ -1,27 +1,18 @@
 ---
 name: sentinel
 description: >
-  Cybersecurity and DevSecOps infrastructure hardening specialist.
-  Use ALWAYS when conversation involves: server security, hardening of nginx/SSH/DNS/firewall,
-  API and endpoint protection, vulnerability or CVE analysis, CVE feed triage and backlog hygiene,
-  secure Docker/container configuration,
-  database protection (PostgreSQL, Redis), Spring Boot / JVM security,
-  SSL/TLS certificates, authentication (Basic Auth, OAuth2, JWT, Keycloak),
-  WAF, rate limiting, anti-DDoS, suspicious log analysis, incident response,
-  ethical penetration testing, Zero Trust, secrets management, DevSecOps pipelines,
-  or any variation of "how to protect X", "is it secure?", "how to harden Y".
-  ALSO INCLUDES AI/LLM/autonomous agent security: prompt injection (direct and indirect),
-  agent jailbreaking, agent hijacking, Ollama security, MCP server/token protection,
-  agent container isolation, execution sandbox, tool permissions,
-  denial of wallet, API key protection, data leakage via AI outputs,
-  OWASP Top 10 for LLMs, AI supply chain, OpenClaw/agent auditing.
-  Also trigger when user mentions: "hacker", "breach", "attack", "exposed",
-  "brute force", "scanning", "CVE", "Trivy", "Semgrep", "fail2ban", "iptables",
-  "UFW", "CrowdSec", "ModSecurity", "Cloudflare", "DNS exposure",
-  "prompt injection", "jailbreak", "Ollama exposed", "MCP security", "agent security",
-  "AI security", "LLM security", "agent security", "OpenClaw security".
-  If there is ANY doubt whether topic is security, trigger this skill — better to consult
-  and not need than to need and not consult.
+  Cybersecurity, DevSecOps and infrastructure hardening specialist. Use for: server security,
+  nginx/SSH/DNS/firewall hardening, API protection, CVEs and CVE feed triage, Docker/container
+  security, PostgreSQL/Redis, Spring Boot/JVM, SSL/TLS, auth (OAuth2, JWT, Keycloak), WAF,
+  rate limiting, anti-DDoS, suspicious logs, incident response, ethical pentesting, Zero Trust,
+  secrets management, "how do I protect X", "is it secure?", "how do I harden Y". Also AI/agent
+  security: prompt injection, jailbreaks, exposed Ollama, MCP tokens, agent sandboxing and tool
+  permissions, OWASP Top 10 for LLMs. And hardening machines and CI that run
+  coding agents (Claude Code, Cursor, Codex): "settings.local.json", "don't ask again",
+  "permissions.allow", "password in the command", ".dockerignore", "PreToolUse hook",
+  "managed settings". Also: "hacker", "breach", "attack", "Trivy", "fail2ban",
+  "UFW", "CrowdSec", "Cloudflare". When in doubt whether it is security, trigger it.
+  Also triggers on the equivalent phrases in other languages.
 ---
 
 # Sentinel — Security & Hardening Specialist
@@ -300,6 +291,30 @@ LLMs can leak sensitive data in output:
   - Git-tracked with PRs for changes
   - Checksums/hashes to detect tampering
 
+### J. Environments That Run Coding Agents (Claude Code, Cursor, Codex, Gemini CLI)
+
+In Claude Code, "Yes, and don't ask again" saves the approved command **verbatim** in
+`.claude/settings.local.json`, inline secret included. Claude Code only adds that file to the
+**global** git excludes of the machine, not to the project `.gitignore`, so it leaks from
+another clone, from CI, or through a `COPY . .` without a `.dockerignore` (GitGuardian, Nov
+2026: 31,088 secrets in 23,276 public repos, 613 more inside public Docker Hub images).
+Principles:
+- The agent handles **names, never values**: `~/.pgpass`, `~/.my.cnf`, `~/.netrc`, credential
+  helpers (`gh`, docker `credsStore`, `aws` profiles), or a wrapper that takes a name
+- Never "don't ask again" on a command with a literal credential; write a pattern rule
+  without the secret instead
+- Agent local files in the **project** `.gitignore` and in `.dockerignore`; a pre-commit hook
+  and a CI gate that fail when they are tracked
+- Claude Code: `Read` deny rules for secret files, a PreToolUse hook that denies literal
+  credentials and environment dumps, managed settings (`allowManagedPermissionRulesOnly`) on
+  shared servers and CI, the sandbox for OS-level enforcement
+- Audit broad allow rules, MCP config with literal tokens, permissions on `~/.claude*`, transcripts
+- Incident: **rotate first**, then remove, then history, forks, images, packages
+
+Details, tested snippets, checklist and sources: `references/coding-agents-hardening.md`.
+Detecting the leaked secret (tree, history, scanner) is the **redact** skill's job; agent
+config in an untrusted repo as an attack vector is the **warden** skill's.
+
 ---
 
 ## Log Analysis and Incidents
@@ -381,3 +396,6 @@ When user asks for a "checklist" or "audit", consult the file
 - Incident response (first 30 minutes)
 - AI/Agent security audit
 - CVE feed triage & backlog hygiene
+
+For an audit of a workstation, server or CI where coding agents run, use the checklist in
+`references/coding-agents-hardening.md` (section 4) and its incident steps (section 5).

@@ -20,6 +20,7 @@ what it already did, and what to do now**.
 - URL / site — headers and redirect chain without rendering, phishing and typosquatting checks
 - Running process — suspicious paths, network connections, persistence
 - Dependencies — npm/pip supply-chain, typosquatting, install hooks
+- AI coding-agent config shipped in a repo — Claude Code hooks/helpers/permissions/`.mcp.json`, Cursor, VS Code Copilot, Codex, Gemini CLI, Windsurf/Devin; endpoint overrides; prompt injection and hidden unicode in `CLAUDE.md`/`AGENTS.md`/rules/skills; committed credentials treated as a trap (never used, always masked). Triage it **before** an agent opens the repo
 
 **Verdict is calibrated, never binary:** MALICIOUS / SUSPICIOUS / UNKNOWN / PUA / CLEAN,
 always with confidence level and the scope actually analyzed. "CLEAN" means "nothing found
@@ -32,7 +33,8 @@ with what I ran" — never "guaranteed safe".
 - `references/url-triage.md` — URL, domain and phishing analysis
 - `references/incident-response.md` — compromised host: containment, scope, credential rotation, eradication
 - `references/ioc-patterns.md` — catalog of suspicious patterns, each with its false positive
-- `scripts/scan_tree.py` — static folder/repo scan, 26 rules, risk-ranked findings
+- `references/agent-config-triage.md` — AI coding-agent config as executable content: file inventory per agent, what to look for, confirmed CVEs/incidents, safe-handling procedure
+- `scripts/scan_tree.py` — static folder/repo scan, 27 pattern rules plus an AI agent-config analyzer (hooks, MCP launchers, permissions, endpoint overrides, hidden unicode, prompt injection), risk-ranked findings; credential-looking values are always masked
 - `scripts/deobfuscate.py` — layered deobfuscation (base64, UTF-16LE, hex, charcode, gzip, XOR) without executing code
 
 Both scripts are **stdlib-only Python** — no dependencies to install.
@@ -62,6 +64,8 @@ python3 scripts/deobfuscate.py file.js --extract   # list encoded blobs only
 `malware`, `virus`, `trojan`, `backdoor`, `webshell`, `ransomware`, `cryptominer`,
 `stealer`, `RAT`, `keylogger`, `payload`, `dropper`, `obfuscated`, `reverse shell`, `C2`,
 `phishing`, `typosquatting`, `postinstall script`, `IoC`, `YARA`, `sandbox`,
-`is this file safe?`, `is this link malicious?`, `is my PC infected?`
+`is this file safe?`, `is this link malicious?`, `is my PC infected?`,
+`is it safe to open this repo in Claude Code?`, `.mcp.json`, `hooks`, `CLAUDE.md`, `AGENTS.md`,
+`rules file`, `prompt injection`, `hidden unicode`, `ANTHROPIC_BASE_URL`
 
 Also triggers on the equivalent phrases in other languages.

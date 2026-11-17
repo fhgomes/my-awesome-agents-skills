@@ -65,9 +65,9 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 
 | Resource | Description |
 |----------|-------------|
-| [sentinel](skills/sentinel/SKILL.md) | Security & DevSecOps specialist agent — hardening, audits, incident response, AI/agent security, CVE triage |
-| [warden](skills/warden/SKILL.md) | Malware & threat analysis — static triage of files, folders, PoCs, URLs and dependencies; layered deobfuscation; incident response. Never executes the sample |
-| [redact](skills/redact/SKILL.md) | Pre-publication privacy audit — secrets, PII/PCI/PHI and internal infra in the working tree **and git history**, with remediation (env vars, `.env.example`, history rewrite, rotation) |
+| [sentinel](skills/sentinel/SKILL.md) | Security & DevSecOps specialist agent — hardening, audits, incident response, AI/agent security, CVE triage, hardening machines and CI that run coding agents |
+| [warden](skills/warden/SKILL.md) | Malware & threat analysis — static triage of files, folders, PoCs, URLs and dependencies; layered deobfuscation; AI coding-agent config (hooks, MCP servers, permissions, hidden unicode) triaged before an agent opens a repo; incident response. Never executes the sample |
+| [redact](skills/redact/SKILL.md) | Pre-publication privacy audit — secrets, PII/PCI/PHI and internal infra in the working tree **and git history**, plus AI coding-agent config files (`.claude/settings.local.json`, `.mcp.json`), with remediation (env vars, `.env.example`, history rewrite, rotation) |
 | [openclaw-agent-hardening](openclaw/security/good-practices/openclaw-agent-hardening.md) | Practical hardening guide: inbound message security, prompt injection defense, secrets management, allowlisting |
 
 ### The three security skills — which one to use
@@ -89,6 +89,7 @@ Sentinel is a cybersecurity specialist agent focused on:
 - DNS/TLS/certificate audits
 - **AI/LLM/Agent security** — prompt injection, Ollama exposure, MCP token security, OWASP Top 10 LLM
 - CVE feed triage and vulnerability backlog hygiene
+- Coding-agent environments — keeping credentials out of approved commands and agent config, `.gitignore`/`.dockerignore`, pre-commit and CI gates
 
 Two self-contained variants:
 - [skills/sentinel/](skills/sentinel/) — drop-in skill (SKILL.md + bundled playbooks) for any runtime

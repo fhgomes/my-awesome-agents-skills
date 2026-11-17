@@ -135,6 +135,15 @@ RUN --mount=type=secret,id=npmtoken \
 - **GitLab CI:** Settings → CI/CD → Variables, mark *Masked* and *Protected*.
 - Never commit `.github/workflows/*.yml` with a literal token.
 
+### AI coding-agent config (Claude Code, Cursor, MCP)
+
+A command approved with "Yes, and don't ask again" is saved in `.claude/settings.local.json`
+with whatever was typed in it. Delete the entry (edit the file or `/permissions`), rotate,
+and re-approve a form without the value (`$VAR`, `--password-stdin`, `~/.pgpass`, a
+credential helper or a wrapper script). In `.mcp.json` and the other MCP files use
+`${VAR}` references. Add `.claude/settings.local.json` to the project `.gitignore` **and**
+`.dockerignore`. Full playbook, including published Docker images: `agent-config-leaks.md`.
+
 ### Secret manager (when the project grows)
 
 AWS Secrets Manager, GCP Secret Manager, Azure Key Vault, HashiCorp Vault, Doppler,

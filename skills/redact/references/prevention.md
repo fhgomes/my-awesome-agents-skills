@@ -48,6 +48,14 @@ kubeconfig
 .vscode/settings.json
 .idea/workspace.xml
 
+# AI coding agents: personal files (approved commands, notes, transcripts)
+# Claude Code ignores settings.local.json only in the GLOBAL excludes of one machine.
+.claude/settings.local.json
+CLAUDE.local.md
+.claude.json
+.aider*
+.specstory/
+
 # Dumps and databases
 *.sql
 *.dump
@@ -93,7 +101,8 @@ FAIL=0
 # 1) files that must never be committed
 for f in $STAGED; do
   case "$f" in
-    .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.jks|id_rsa|id_ed25519|*.tfstate|.npmrc|.pgpass)
+    .env|.env.*|*.pem|*.key|*.p12|*.pfx|*.jks|id_rsa|id_ed25519|*.tfstate|.npmrc|.pgpass|\
+    .claude/settings.local.json|*/.claude/settings.local.json|CLAUDE.local.md|*/CLAUDE.local.md)
       case "$f" in
         .env.example|.env.template|.env.sample) ;;
         *) echo "BLOCKED: $f must not be versioned"; FAIL=1 ;;
@@ -171,7 +180,10 @@ catch generic passwords or personal data. It does not replace the audit.
 ## 5. Checklist before making a repo public
 
 - [ ] `scan_secrets.py . --history` with no critical/high finding
+- [ ] `scan_agent_configs.py .` with no finding (agent config files, Dockerfiles)
 - [ ] History scanned, not just the working tree
+- [ ] `.claude/settings.local.json` in the **project** `.gitignore`, not only the global excludes
+- [ ] `.dockerignore` exists next to every Dockerfile that does `COPY .`, and excludes `.claude/`
 - [ ] No `.env`, `.pem`, `.key`, `credentials.json` tracked
 - [ ] `.gitignore` covers secrets, keys, dumps, backups
 - [ ] `.env.example` versioned, with empty keys

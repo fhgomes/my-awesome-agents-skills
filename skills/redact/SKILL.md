@@ -1,30 +1,18 @@
 ---
 name: redact
 description: >
-  Privacy and data-exposure specialist for code — a PRE-PUBLICATION audit of repositories
-  that are about to go public (or already are). Hunts leaked secrets and sensitive data:
-  API keys, tokens, passwords, connection strings, private keys, certificates, database
-  credentials, CI secrets, service accounts, internal IPs and hostnames, private endpoints,
-  and personal data — PII (Brazilian CPF/RG/CNPJ IDs, e-mail, phone, address, customer
-  names), PCI (credit card numbers, CVV), PHI (health data) — in the working tree AND in
-  GIT HISTORY, where a leak survives even after the file is deleted.
-  Teaches remediation: move to an environment variable, .env, application.properties,
-  parameter, or secret manager; create .env.example; fix .gitignore; rewrite history;
-  and rotate the exposed credential.
-  ALWAYS use when the user says: "I'm making this repo public", "can I publish this?",
-  "is there a secret in the code?", "did a password leak?", "check whether a key was
-  committed", "audit before publishing", "is this repo safe to open up?", "open-source
-  this project", "review before pushing", "is there personal data in the code?", "is there
-  a CPF/card number in the repo?", "I committed .env by mistake", "how do I remove it from
-  history", "how do I use an environment variable".
-  Also trigger on mentions of: "secret", "secrets", "API key", "leaked token", "hardcoded
-  password", "password in the code", "exposed credential", "private key", "id_rsa",
-  ".env committed", "connection string", "PII", "PCI", "PHI", "LGPD", "GDPR", "personal
-  data", "anonymize", "sanitize repo", "gitleaks", "trufflehog", "git history", "rewrite
-  history", "BFG", "filter-repo", "public repository", "make public", "publish on GitHub",
-  "open source". Also triggers on the equivalent phrases in other languages.
-  For malware/viruses/suspicious files, use the warden skill. For server and infrastructure
-  hardening, use the sentinel skill.
+  Pre-publication privacy audit for code: finds leaked secrets (API keys, tokens, passwords,
+  private keys), internal IPs/hostnames and personal data
+  (PII such as Brazilian CPF/CNPJ, e-mail, phone; PCI card numbers; PHI) in the working tree
+  AND git history. Also audits AI coding-agent config (Claude Code .claude/settings.local.json
+  "don't ask again" approvals, .mcp.json, transcripts; Cursor, VS Code, Codex),
+  where inline passwords sit in plain text, and whether those files are tracked or shipped in
+  Docker images. Teaches remediation and rotation. Use for "I'm making this repo public", "can I publish this?",
+  "I committed .env by mistake", "remove it from history", "did
+  Claude save my password?", "is settings.local.json safe to commit?", "secret in .mcp.json",
+  and mentions of secrets, API key, hardcoded password, id_rsa, PII, LGPD, GDPR, gitleaks,
+  filter-repo. Malware: use warden. Hardening: use sentinel.
+  Also triggers on the equivalent phrases in other languages.
 ---
 
 # Redact — Privacy & Secret Exposure Auditor
@@ -110,6 +98,22 @@ git --no-pager log -S'AKIA' --all --oneline
 git --no-pager grep -I -n 'password' $(git rev-list --all) 2>/dev/null | head -20
 ```
 
+### Step 2b — AI agent config files
+Always part of the pass, even if nobody mentions an agent. "Yes, and don't ask again" in
+Claude Code saves the approved command line in `.claude/settings.local.json`; a password
+typed inline (`PGPASSWORD=…`, `mysql -p…`, `curl -u user:…`, `-H "Authorization: …"`) is
+then in plain text, without a format that gitleaks/TruffleHog recognize. The file is ignored
+only by the machine's **global** excludes, so it gets committed elsewhere and shipped by
+`COPY .` in Docker.
+```bash
+python3 scripts/scan_agent_configs.py /path/to/repo-or-workspace
+```
+Finds the agent files (Claude Code, Cursor, VS Code, Gemini CLI, Codex, Continue, Aider),
+nested repos included; parses permission lists and MCP `env`/`headers`/`args`; reports
+whether each file is tracked, in history, ignored by the project `.gitignore` or only
+globally, and Dockerfiles without a `.dockerignore` excluding `.claude/`. Never prints a
+value. Details, file list and fixes: `references/agent-config-leaks.md`.
+
 ### Step 3 — Classify and prioritize
 Sort by real damage, not by number of findings:
 
@@ -164,6 +168,13 @@ private keys (`-----BEGIN ... PRIVATE KEY-----`), JWTs with a real payload,
 connection strings with an embedded password, hardcoded passwords in config, `.htpasswd`,
 credentials in URLs (`https://user:pass@host`).
 
+### Secrets in agent config files
+Inline credentials in approved commands and MCP config: `.claude/settings.local.json`,
+`.claude/settings.json`, `.mcp.json`, a copied `~/.claude.json`, transcripts
+(`.claude/projects/**/*.jsonl`), `.cursor/mcp.json`, `.vscode/mcp.json`,
+`.gemini/settings.json`, `.codex/config.toml` + `rules/*.rules`, `.continue/`,
+`.aider.conf.yml`. A `${VAR}` reference is the correct pattern; a literal is a finding.
+
 ### Personal data (PII / PCI / PHI)
 - **Brazilian PII:** CPF (tax ID), CNPJ (company ID), RG (identity card), CNH (driver's
   license), voter registration number, PIS/NIS (social security number), CEP (postal code)
@@ -190,7 +201,8 @@ In isolation it is noise. Together, it hands over the network topology.
 `credentials.json`, `serviceAccount*.json`, `secrets.yaml`, `*.sqlite`/`*.db` with real data,
 `terraform.tfstate` (stores secrets in plain text), `.aws/credentials`, `*.ovpn`, `.sql` dumps,
 `.DS_Store`, `Thumbs.db`, backups `*.bak`/`*~`, `.vscode/settings.json` with a token,
-`docker-compose.override.yml` with a password.
+`docker-compose.override.yml` with a password, `.claude/settings.local.json`,
+`CLAUDE.local.md`, `.claude.json`, `.credentials.json`.
 
 ---
 
@@ -297,4 +309,6 @@ A repo with more than one contributor needs two extra precautions:
 - `references/remediation.md` — secret extraction per stack (Spring, Node, Python, Docker, CI)
 - `references/history-rewrite.md` — git history cleanup, step by step
 - `references/prevention.md` — .gitignore, .env.example, pre-commit hook, publication checklist
+- `references/agent-config-leaks.md` — secrets in coding-agent config files: mechanism, file list per agent, inline-credential shapes, tracking/Docker checks, fixes, research figures
 - `scripts/scan_secrets.py` — self-contained scanner: working tree + history, with Luhn and entropy
+- `scripts/scan_agent_configs.py` — agent config audit: permission rules, MCP blocks, transcripts, tracking state, history, Dockerfiles; masked output, exit 1 on findings

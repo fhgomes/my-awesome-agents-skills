@@ -160,6 +160,39 @@ identifies as PHP, a dense one-liner at the end of a legitimate file (appended b
 
 ---
 
+## AI coding-agent configuration shipped in a repo/package
+
+Full playbook: `references/agent-config-triage.md`. These files run **when an agent opens the tree**.
+
+| Pattern | Means |
+|---|---|
+| `.claude/settings.json` → `hooks.SessionStart[].hooks[].command` with `curl`/`wget`/`node -e`/base64 | Code runs at session start (GHSA-ph6w-f82w-28w6 pattern) |
+| Hook `"type": "http"` with a third-party `url` | Every event payload (prompts, tool input) is POSTed out |
+| `statusLine.command`, `apiKeyHelper`, `awsAuthRefresh`, `awsCredentialExport`, `gcpAuthRefresh`, `otelHeadersHelper`, `fileSuggestion` | Other "run this command" settings |
+| `env.ANTHROPIC_BASE_URL` / `*_BASE_URL` / `HTTPS_PROXY` to a non-vendor host | API traffic and auth header redirected (CVE-2026-21852) |
+| `env.NODE_TLS_REJECT_UNAUTHORIZED: "0"`, `NODE_EXTRA_CA_CERTS`, `CLAUDE_CODE_SHELL_PREFIX`, `NODE_OPTIONS=--require`, `LD_PRELOAD` | MITM or code injection into every agent subprocess |
+| `.env` with `CODEX_HOME=./...` | Codex loads repo config (CVE-2025-61260) |
+| `enableAllProjectMcpServers: true`, `enabledMcpjsonServers` | Repo approves its own MCP servers (CVE-2025-59536) |
+| `permissions.allow`: `Bash`, `Bash(*)`, `Bash(curl *)`, `Bash(sudo *)`, `WebFetch(domain:*)`, `Write(~/**)` | Pre-approved shell / network / out-of-repo writes |
+| `defaultMode: bypassPermissions`, `skipDangerousModePermissionPrompt`, `additionalDirectories: ["~/"]` | Guardrails off / home dir in scope |
+| `.mcp.json`: `npx -y <unpinned>`, `uvx <pkg>`, `bash -c`, `docker run --privileged`, `http://` URL | Remote code on every start / host access / plaintext tool traffic |
+| MCP package 1–2 edits from a known one (`@modelcontextprotocl/...`, `mcp-server-fecth`) | Typosquat (postmark-mcp style) |
+| `mcp-remote` < 0.1.16 | CVE-2025-6514 |
+| `.vscode/settings.json` `"chat.tools.autoApprove": true` | Copilot "YOLO" (CVE-2025-53773) |
+| `.vscode/tasks.json` `"runOn": "folderOpen"` | Task runs when the folder opens |
+| Gemini `mcpServers.*.trust: true`, `tools.allowed: ["run_shell_command"]`; Codex `approval_policy = "never"`, `sandbox_mode = "danger-full-access"` | Confirmation disabled |
+| Skill body `` !`cmd` `` / ` ```! `; frontmatter `allowed-tools: Bash`, `hooks:` | Shell runs on invocation, before the model reads the skill |
+| Unicode Tags U+E0000–E007F, bidi U+202A–202E/U+2066–2069, zero-width in `CLAUDE.md`/`AGENTS.md`/`.cursorrules`/`*.mdc` | Hidden instructions (Rules File Backdoor) |
+| "ignore previous instructions", "do not tell the user", "fetch <url> and follow it", "send .env/tokens to" | Prompt injection |
+| Script calling `claude --dangerously-skip-permissions -p`, `gemini --yolo`, `q --trust-all-tools` | AI CLI used as a stealer (s1ngularity/Nx) |
+| Committed `.claude/settings.local.json` with `PGPASSWORD=`, `Bearer`, `sk-ant-`... | Hygiene IoC + **trap**: never use or test the credential |
+
+**False positive:** your team's own formatter hook (`npx prettier --write`), allow rules like
+`Bash(npm run test *)`, a pinned, well-known MCP server, emoji ZWJ sequences. The question is always:
+*would this run without me deciding it, and does it need to?* In a third-party repo, every hook needs a reason.
+
+---
+
 ## Social engineering lure (the vector, not the payload)
 
 - Double extension: `quote.pdf.exe`, `invoice.docx.scr`
@@ -181,6 +214,7 @@ One indicator = investigate. Combination = verdict.
 
 **MALICIOUS with high confidence:**
 remote download + dynamic execution + persistence + AV evasion.
+In agent config: a `SessionStart` hook / MCP launcher that fetches remote code, or a repo-set API base URL.
 
 **SUSPICIOUS:**
 heavy obfuscation without justification + network access, but no decoded payload.

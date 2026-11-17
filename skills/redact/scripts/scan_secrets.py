@@ -60,6 +60,10 @@ DANGEROUS_FILES = [
     (r"\.(sql|dump)$", "medium", "Database dump - check whether it holds real data"),
     (r"\.(sqlite3?|db)$", "medium", "Versioned database - check its contents"),
     (r"(^|/)\.htpasswd$", "high", "HTTP password hash"),
+    (r"(^|/)\.claude/\.credentials\.json$", "critical", "Claude Code login credentials file"),
+    (r"(^|/)\.claude/settings\.local\.json$|(^|/)CLAUDE\.local\.md$|(^|/)\.claude\.json$", "medium",
+     "Personal AI-agent file (may hold approved commands with inline passwords) - "
+     "run scan_agent_configs.py"),
     (r"(^|/)\.DS_Store$|(^|/)Thumbs\.db$", "low", "OS metadata file (noise)"),
     (r"\.(bak|backup|old|orig)$|~$", "low", "Backup file - may hold an old version with a secret"),
 ]
@@ -429,7 +433,8 @@ def scan_history(root: str, rules, max_commits: int) -> tuple[list, dict]:
     findings: list = []
     info = {"commits": 0, "deleted_sensitive": [], "available": False}
 
-    if not os.path.isdir(os.path.join(root, ".git")):
+    # ".git" is a directory in a normal clone and a file in a worktree or submodule
+    if not os.path.exists(os.path.join(root, ".git")):
         return findings, info
     if not git(root, "rev-parse", "--git-dir").strip():
         return findings, info

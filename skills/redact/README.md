@@ -17,6 +17,7 @@ command, the correct pattern to replace it with, and the rotation instruction.
 - **Personal data** — PII (Brazilian CPF/CNPJ/RG/CNH validated by check digits, phone, email, address), PCI (card numbers validated by Luhn, CVV), PHI (health data)
 - **Internal infra** — private IPs, internal hostnames, paths revealing OS usernames
 - **Dangerous files** — `.env`, `*.pem`, `id_rsa`, `credentials.json`, `*.tfstate`, DB dumps
+- **AI agent config files** — passwords typed inline in commands approved with "don't ask again" (Claude Code `.claude/settings.local.json`), literal tokens in MCP `env`/`headers` (`.mcp.json`, Cursor, VS Code, Gemini CLI, Codex, Continue, Aider), transcripts; plus whether the file is tracked, in history, ignored only by the global excludes, or shipped by a Dockerfile `COPY .` without `.dockerignore`
 
 **The differentiator is `--history`.** A secret deleted from HEAD still lives in git
 history and leaks exactly the same. The scanner walks the blobs added in each commit
@@ -41,7 +42,9 @@ Order that never changes: **rotate → remove from code → clean history → pr
 - `references/remediation.md` — secret extraction per stack (Spring Boot, Node, Python, Docker, CI) + `.env.example`
 - `references/history-rewrite.md` — git history cleanup (filter-repo, BFG, filter-branch) and its real limits
 - `references/prevention.md` — `.gitignore`, tested pre-commit hook, GitHub push protection, pre-publication checklist
+- `references/agent-config-leaks.md` — secrets in coding-agent config files: mechanism, files per agent, inline-credential shapes, fixes, research figures with sources
 - `scripts/scan_secrets.py` — self-contained scanner: working tree + git history, Luhn and CPF check-digit validation, entropy, masked output
+- `scripts/scan_agent_configs.py` — agent config audit over a whole tree (nested repos, history, Dockerfiles); prints only `ab… (len=N)`, exit 1 on findings
 
 **Stdlib-only Python** — no gitleaks, trufflehog or detect-secrets required.
 
@@ -62,6 +65,9 @@ python3 scripts/scan_secrets.py /path/to/repo --history --severity high
 
 # machine-readable
 python3 scripts/scan_secrets.py /path/to/repo --history --json
+
+# AI agent config files (Claude Code, Cursor, VS Code, Gemini, Codex...) — whole workspace
+python3 scripts/scan_agent_configs.py /path/to/workspace
 ```
 
 ## False positives are the priority
@@ -84,6 +90,7 @@ On a correctly written repo: zero findings.
 
 `secret`, `API key`, `leaked token`, `hardcoded password`, `private key`, `.env committed`,
 `connection string`, `PII`, `PCI`, `PHI`, `LGPD`, `GDPR`, `git history`, `rewrite history`,
-`BFG`, `filter-repo`, `make repo public`, `open source this`, `is it safe to publish?`
+`BFG`, `filter-repo`, `make repo public`, `open source this`, `is it safe to publish?`,
+`settings.local.json`, `don't ask again`, `.mcp.json`, `.dockerignore`
 
 Also triggers on the equivalent phrases in other languages.
