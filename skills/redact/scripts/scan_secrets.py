@@ -440,8 +440,17 @@ def scan_history(root: str, rules, max_commits: int) -> tuple[list, dict]:
         return findings, info
     info["available"] = True
 
-    revs = [r for r in git(root, "rev-list", "--all", f"--max-count={max_commits}").split() if r]
+    # max_commits <= 0 means the whole history. A capped scan is reported as such:
+    # the oldest commits are exactly where a "removed long ago" secret lives.
+    cap = [f"--max-count={max_commits}"] if max_commits > 0 else []
+    revs = [r for r in git(root, "rev-list", "--all", *cap).split() if r]
     info["commits"] = len(revs)
+    try:
+        total = int(git(root, "rev-list", "--all", "--count").strip() or 0)
+    except ValueError:
+        total = len(revs)
+    info["total_commits"] = max(total, len(revs))
+    info["truncated"] = len(revs) < total
 
     # sensitive files that existed at any point in history
     names = git(root, "log", "--all", "--pretty=format:", "--name-only", "--diff-filter=A")
@@ -493,7 +502,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Pre-publication exposure audit")
     ap.add_argument("repo")
     ap.add_argument("--history", action="store_true", help="also scan the git history")
-    ap.add_argument("--max-commits", type=int, default=400)
+    ap.add_argument("--max-commits", type=int, default=400,
+                    help="newest commits to scan with --history (default 400; 0 = whole history)")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--severity", choices=["low", "medium", "high", "critical"], default="low")
     ap.add_argument("--no-pii", action="store_true", help="do not look for PII/PCI/PHI")
@@ -509,7 +519,8 @@ def main() -> int:
     rules = build_rules(not args.no_pii, not args.no_infra)
     findings, scanned = scan_worktree(root, rules, args.max_bytes)
 
-    hist_info = {"available": False, "commits": 0, "deleted_sensitive": []}
+    hist_info = {"available": False, "commits": 0, "deleted_sensitive": [],
+                 "total_commits": 0, "truncated": False}
     if args.history:
         hf, hist_info = scan_history(root, rules, args.max_commits)
         findings += hf
@@ -521,11 +532,13 @@ def main() -> int:
 
     counts = Counter(f["severity"] for f in findings)
     blockers = counts["critical"] + counts["high"]
+    truncated = bool(hist_info.get("truncated"))
+    skipped = hist_info.get("total_commits", 0) - hist_info.get("commits", 0)
 
     if args.json:
         print(json.dumps({
             "repo": root, "files_scanned": scanned, "history": hist_info,
-            "counts": dict(counts), "safe_to_publish": blockers == 0,
+            "counts": dict(counts), "safe_to_publish": blockers == 0 and not truncated,
             "findings": findings,
         }, indent=2, ensure_ascii=False))
         return 0
@@ -534,7 +547,11 @@ def main() -> int:
     print(f"files   : {scanned}")
     if args.history:
         if hist_info["available"]:
-            print(f"history : {hist_info['commits']} commits scanned")
+            if truncated:
+                print(f"history : {hist_info['commits']} of {hist_info['total_commits']} commits scanned"
+                      f" — INCOMPLETE, the {skipped} oldest were skipped")
+            else:
+                print(f"history : {hist_info['commits']} commits scanned")
         else:
             print("history : not a git repository (or git unavailable)")
     print(f"findings: {len(findings)}  "
@@ -547,6 +564,9 @@ def main() -> int:
         print("especially for personal data in fixtures/dumps and secrets in unusual formats.")
         if not args.history:
             print("\nYou did NOT scan the history. Run again with --history before publishing.")
+        if truncated:
+            print(f"\nHISTORY INCOMPLETE: the {skipped} oldest commits were not scanned.")
+            print("Run again with --max-commits 0 before calling this repository clean.")
         return 0
 
     label = {"critical": "CRITICAL", "high": "HIGH", "medium": "MEDIUM", "low": "LOW"}
@@ -579,6 +599,9 @@ def main() -> int:
     if not args.history and hist_info["available"] is False:
         print("\nWARNING: git history was NOT scanned. Run with --history —")
         print("a deleted secret still lives in history and leaks just the same.")
+    if truncated:
+        print(f"\nWARNING: history scan INCOMPLETE — the {skipped} oldest commits were not scanned.")
+        print("Run again with --max-commits 0; old commits are where removed secrets live.")
     return 0
 
 

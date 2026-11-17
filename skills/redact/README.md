@@ -57,8 +57,9 @@ This folder is **self-contained** — copy it into any runtime that loads a SKIL
 # working tree only
 python3 scripts/scan_secrets.py /path/to/repo
 
-# including git history — ALWAYS run this before making a repo public
-python3 scripts/scan_secrets.py /path/to/repo --history
+# including the WHOLE git history — ALWAYS run this before making a repo public
+# (without --max-commits 0 only the newest 400 commits are read, and the output says INCOMPLETE)
+python3 scripts/scan_secrets.py /path/to/repo --history --max-commits 0
 
 # blockers only
 python3 scripts/scan_secrets.py /path/to/repo --history --severity high

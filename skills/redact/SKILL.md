@@ -86,8 +86,12 @@ Covers secrets, PII/PCI/PHI, internal infra and dangerous files by name.
 ### Step 2 — History scan
 This is the part almost everyone forgets, and the one that leaks the most.
 ```bash
-python3 scripts/scan_secrets.py /path/to/repo --history
+python3 scripts/scan_secrets.py /path/to/repo --history --max-commits 0
 ```
+`--max-commits 0` scans the whole history. Without it only the newest 400 commits are read;
+the script then prints `INCOMPLETE` and never reports the repository as safe. Old commits
+are where a secret "removed long ago" lives, so a capped scan is not a pre-publication audit.
+
 Or manually:
 ```bash
 # sensitive files that ever existed in any commit
