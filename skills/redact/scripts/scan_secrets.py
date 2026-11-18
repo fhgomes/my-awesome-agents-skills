@@ -130,7 +130,7 @@ PII_RULES = [
     ("cnh", r"(?i)\bcnh\s*[:=]?\s*(\d{9,11})\b", "high", "Brazilian CNH driver's license", 1),
     ("titulo_eleitor", r"(?i)\bt[ií]tulo\s*(?:de\s*eleitor)?\s*[:=]?\s*(\d{12})\b", "high",
      "Brazilian voter registration number", 1),
-    ("credit_card", r"(?<![\d\-])((?:\d[ \-]?){13,19})(?![\d\-])", "critical",
+    ("credit_card", r"(?<![0-9A-Fa-f\-])((?:\d[ \-]?){13,19})(?![0-9A-Fa-f\-])", "critical",
      "Credit card number (Luhn-validated)", 1),
     ("cvv", r"(?i)\b(?:cvv|cvc|cvv2|security[_\-\s]?code)\s*[:=]\s*['\"]?(\d{3,4})['\"]?", "critical",
      "Card CVV/CVC", 1),
@@ -210,9 +210,53 @@ def mask(secret: str) -> str:
     s = secret.strip()
     if not s:
         return ""
+    # Reveal little: the old "first 4 + last 4" showed 8 of the 9 characters of a
+    # short password. The star count is fixed so it does not give the length away
+    # (the 'value:' line reports the length on purpose, next to the mask).
     if len(s) <= 8:
-        return s[0] + "*" * (len(s) - 1)
+        return s[0] + "*" * 8
+    if len(s) < 20:
+        return s[:2] + "*" * 8
     return f"{s[:4]}{'*' * 8}{s[-4:]}"
+
+
+_SCRUB_RULES: list = []
+_SCRUB_PRIVKEY = re.compile(r"-----BEGIN[^-]*PRIVATE KEY-----.*")
+_SCRUB_USERINFO = re.compile(r"(://[^/\s:@]*:)([^@\s/]+)(@)")
+_SCRUB_JWT = re.compile(r"eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]*)?")
+_SCRUB_ASSIGN = re.compile(
+    r"(?i)((?:pass(?:word|wd)?|pwd|secret|token|api[_-]?key|private[_-]?key|credential)s?"
+    r"[\"']?\s*[:=]\s*[\"']?)([^\s\"',;]{4,})")
+_SCRUB_OPAQUE = re.compile(r"[A-Za-z0-9+/=_\-]{40,}")
+_SCRUB_CLI_USER = re.compile(r"((?:\s-u|--user)[\s=]+[\"']?[^\s:\"']+:)([^\s\"']+)")
+
+
+def safe_snippet(line: str, value: str = "") -> str:
+    """The line a finding sits on, with EVERY secret-looking value masked.
+
+    A line often carries more than the value the rule matched (a connection
+    string has a host and a password; a header has a JWT), so masking only the
+    matched value leaked the rest. Masks first, truncates last: truncating first
+    left the head of a value that crossed the cut.
+    """
+    global _SCRUB_RULES
+    if not _SCRUB_RULES:
+        _SCRUB_RULES = [(re.compile(rx), grp)
+                        for _rid, rx, _sev, _desc, grp in SECRET_RULES + PII_RULES + INFRA_RULES]
+    s = line.strip()[:4000]
+    s = _SCRUB_PRIVKEY.sub("-----BEGIN " + "PRIVATE KEY----- [redacted]", s)
+    values = {value} if value else set()
+    for rx, grp in _SCRUB_RULES:
+        for m in rx.finditer(s):
+            values.add(m.group(grp) if grp and m.lastindex and grp <= m.lastindex else m.group(0))
+    for v in sorted((v for v in values if v and len(v) >= 3), key=len, reverse=True):
+        s = s.replace(v, mask(v))
+    s = _SCRUB_USERINFO.sub(lambda m: m.group(1) + mask(m.group(2)) + m.group(3), s)
+    s = _SCRUB_JWT.sub("eyJ********[jwt]", s)
+    s = _SCRUB_CLI_USER.sub(lambda m: m.group(1) + mask(m.group(2)), s)
+    s = _SCRUB_ASSIGN.sub(lambda m: m.group(1) + (m.group(2) if "*" in m.group(2) else mask(m.group(2))), s)
+    s = _SCRUB_OPAQUE.sub(lambda m: mask(m.group(0)), s)
+    return s[:150]
 
 
 def mask_len(secret: str) -> str:
@@ -364,10 +408,8 @@ def scan_text(text: str, path: str, rules, out: list, source: str = "worktree") 
 
             final_sev, ctx = adjust_severity(sev, path, ext)
             notes = [n for n in (note, ctx) if n]
-            snippet = lines[line_no - 1].strip()[:150] if line_no <= len(lines) else ""
-            # never leak the value in the snippet
-            if value and len(value) > 6 and value in snippet:
-                snippet = snippet.replace(value, mask(value))
+            # never leak a value in the snippet: this one or any other on the line
+            snippet = safe_snippet(lines[line_no - 1], value) if line_no <= len(lines) else ""
 
             out.append({
                 "rule": rid, "severity": final_sev, "desc": desc,

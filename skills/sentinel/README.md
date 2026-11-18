@@ -22,6 +22,9 @@ Sentinel is a cybersecurity and DevSecOps specialist that delivers ready-to-run 
 - `SKILL.md` — the full skill definition (identity, domains, CVE triage method, ethics)
 - `references/playbooks.md` — bundled operational playbooks (VPS hardening, nginx/Docker/Spring Boot audits, incident response, AI/agent security audit, CVE feed triage)
 - `references/coding-agents-hardening.md` — hardening workstations, servers and CI that run coding agents (Claude Code, Cursor, Codex, Gemini CLI): tested snippets, audit checklist, incident steps, sources
+- `references/companion-tools.md` — optional open-source scanners Sentinel can offer to run alongside its own audit (Lynis, AIDE, ssh-audit, testssl.sh, Trivy, Grype/Syft, hadolint, Checkov, zizmor, actionlint, Semgrep CE, gitleaks, and more): default per domain, license, pinned install, read-only commands, caveats, what was tested
+
+**Optional companions:** Sentinel works fully on its own. When a matching scanner is installed it offers, once, to also run it (or names the best one to install, with consent); findings are labelled by source.
 
 This folder is **self-contained** — copy it into any runtime that loads a SKILL.md (Claude, OpenClaw, custom agents) and it works as-is. No other part of this repository is required.
 

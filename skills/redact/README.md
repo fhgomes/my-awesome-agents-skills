@@ -45,8 +45,13 @@ Order that never changes: **rotate → remove from code → clean history → pr
 - `references/agent-config-leaks.md` — secrets in coding-agent config files: mechanism, files per agent, inline-credential shapes, fixes, research figures with sources
 - `scripts/scan_secrets.py` — self-contained scanner: working tree + git history, Luhn and CPF check-digit validation, entropy, masked output
 - `scripts/scan_agent_configs.py` — agent config audit over a whole tree (nested repos, history, Dockerfiles); prints only `ab… (len=N)`, exit 1 on findings
+- `references/companion-tools.md` — optional open-source second opinions: Betterleaks, gitleaks, Trivy (Docker images), TruffleHog, Kingfisher, detect-secrets, git-filter-repo; license, pinned install, tested commands with masked/offline flags, what each sends over the network
+- `scripts/summarize_external.py` — reads those tools' JSON reports and prints rule, file, line, commit, date and "file in HEAD" vs "history only", generic rules apart, **never a value** (several tools write raw secrets into their reports); `--json`
 
-**Stdlib-only Python** — no gitleaks, trufflehog or detect-secrets required.
+**Stdlib-only Python** — no external scanner required, several supported. When one is
+installed the skill offers it once ("also run Betterleaks?") and otherwise runs alone;
+it never installs anything without consent, and tools that verify credentials against
+providers (TruffleHog, Kingfisher) run only on request, with verification off by default.
 
 This folder is **self-contained** — copy it into any runtime that loads a SKILL.md
 (Claude, OpenClaw, custom agents) and it works as-is.
@@ -69,6 +74,10 @@ python3 scripts/scan_secrets.py /path/to/repo --history --json
 
 # AI agent config files (Claude Code, Cursor, VS Code, Gemini, Codex...) — whole workspace
 python3 scripts/scan_agent_configs.py /path/to/workspace
+
+# optional second opinion, if installed; the report is read only through the summarizer
+betterleaks git /path/to/repo --redact=100 --no-banner -l error -f json -r /tmp/bl.json
+python3 scripts/summarize_external.py /tmp/bl.json --repo /path/to/repo
 ```
 
 ## False positives are the priority
@@ -92,6 +101,6 @@ On a correctly written repo: zero findings.
 `secret`, `API key`, `leaked token`, `hardcoded password`, `private key`, `.env committed`,
 `connection string`, `PII`, `PCI`, `PHI`, `LGPD`, `GDPR`, `git history`, `rewrite history`,
 `BFG`, `filter-repo`, `make repo public`, `open source this`, `is it safe to publish?`,
-`settings.local.json`, `don't ask again`, `.mcp.json`, `.dockerignore`
+`settings.local.json`, `don't ask again`, `.mcp.json`, `.dockerignore`, `Betterleaks`, `TruffleHog`, `Trivy`
 
 Also triggers on the equivalent phrases in other languages.

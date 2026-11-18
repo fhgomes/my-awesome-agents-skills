@@ -31,10 +31,24 @@ explicitly asks for it and confirms the isolation.
 
 Reply in the user's language. Technical terms and IoC names stay in English.
 
-**Environment:** check which tools are installed before relying on them (e.g.
-`which gitleaks`, `Get-Command Get-MpThreat`, `which clamscan yara binwalk olevba capa`).
-The bundled scripts are stdlib-only Python, so they work without any of them. If a tool
-is missing, propose installing it — never claim to have run a tool that does not exist.
+### Companion tools (optional)
+The built-in triage always runs first and stands on its own (this flow plus the stdlib-only
+`scripts/`). Open-source companions are a second opinion, chosen from `references/companion-tools.md`.
+1. **Detect** what is installed (on Windows also `Get-Command Get-MpThreat` for Defender):
+   - Linux/macOS: `for t in yr yara capa floss olevba oleid exiftool diec clamscan binwalk guarddog osv-scanner trivy skill-scanner; do command -v "$t"; done`
+   - PowerShell: `Get-Command yr,yara,capa,floss,olevba,oleid,exiftool,diec,clamscan,guarddog,osv-scanner,trivy,skill-scanner -ErrorAction SilentlyContinue | Select-Object Name,Source`
+2. **Offer once, briefly**, in the user's language: "Also run it with A, with B, or the skill alone?",
+   with A and B taken from the reference's table for this sample type. If the user already named
+   a tool or asked for an unattended run, follow that without asking.
+3. **Nothing suitable installed:** name the top one or two for this sample type, what each adds and
+   how to install it (package manager, or pinned release plus checksum). Never install without consent.
+4. **Static modes only**, with the exact commands in the reference. A tool or mode that sends
+   content out (vendor API, LLM, upload) is offered only when the user names it, after saying
+   exactly what will be sent. Never a mode that starts the MCP servers or packages under scrutiny.
+5. **Label** every finding with its source (`[scan_tree]`, `[capa]`, `[guarddog]`...) and mask any
+   secret a tool echoes.
+6. A clean companion result **never** overrides the skill's own indicators; a tool that failed or
+   was skipped goes into the scope line. Never claim to have run a tool that is not installed.
 
 ---
 
@@ -359,5 +373,6 @@ Full playbook in `references/incident-response.md`.
 - `references/incident-response.md` — compromised host: containment, scope, eradication
 - `references/ioc-patterns.md` — catalog of suspicious patterns and what each one means
 - `references/agent-config-triage.md` — AI coding-agent config as executable content: inventory per agent, IoCs, real CVEs, safe handling
+- `references/companion-tools.md` — optional open-source companions per sample type: license, install, static command, what leaves the machine
 - `scripts/scan_tree.py` — folder/repo sweep with risk ranking (includes agent-config analysis; masks secrets)
 - `scripts/deobfuscate.py` — layered deobfuscation without executing code

@@ -80,6 +80,13 @@ They are complementary, each answering a different question:
 | [warden](skills/warden/) | *"Is this file malicious?"* — malware and threat analysis |
 | [redact](skills/redact/) | *"If I publish this, what leaks?"* — secret and PII exposure |
 
+Each one works on its own. All three can also **offer open-source companion tools** and let
+you pick: run the skill alone, or together with a scanner you already have (Betterleaks,
+gitleaks, Trivy, YARA-X, capa, GuardDog, OSV-Scanner, Lynis, Checkov, zizmor and others).
+Every tool listed in a skill's `references/companion-tools.md` is free, under an open-source
+license, runs locally, and has its license, install and command checked; anything that sends
+content to a vendor is offered only when you ask for it by name.
+
 ### Sentinel — Security Agent
 
 Sentinel is a cybersecurity specialist agent focused on:

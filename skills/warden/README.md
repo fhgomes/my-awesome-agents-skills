@@ -37,7 +37,19 @@ with what I ran" — never "guaranteed safe".
 - `scripts/scan_tree.py` — static folder/repo scan, 27 pattern rules plus an AI agent-config analyzer (hooks, MCP launchers, permissions, endpoint overrides, hidden unicode, prompt injection), risk-ranked findings; credential-looking values are always masked
 - `scripts/deobfuscate.py` — layered deobfuscation (base64, UTF-16LE, hex, charcode, gzip, XOR) without executing code
 
+- `references/companion-tools.md` — optional open-source companions per sample type, each with license, install, the exact static command, how to read it, and what (if anything) leaves the machine
+
 Both scripts are **stdlib-only Python** — no dependencies to install.
+
+## Optional companion tools
+
+Warden needs nothing else, but it detects open-source analyzers you already have and offers to
+run them as a second opinion: **capa**, **FLOSS**, **YARA-X** with an open rule set, **oletools**,
+**exiftool**, **GuardDog**, **OSV-Scanner**, **Trivy** and Cisco's **skill-scanner** (core mode),
+with Detect It Easy, ClamAV and binwalk as extras. It asks once (with tool A, with tool B, or the
+skill alone), never installs without consent, uses static modes only, and labels each finding
+with the tool it came from. Scanners that send content to a vendor API or an LLM (Snyk
+agent-scan, Cisco mcp-scanner) are offered only when you ask for them by name.
 
 This folder is **self-contained** — copy it into any runtime that loads a SKILL.md
 (Claude, OpenClaw, custom agents) and it works as-is.

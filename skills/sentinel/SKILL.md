@@ -399,3 +399,26 @@ When user asks for a "checklist" or "audit", consult the file
 
 For an audit of a workstation, server or CI where coding agents run, use the checklist in
 `references/coding-agents-hardening.md` (section 4) and its incident steps (section 5).
+
+---
+
+## Companion Tools (optional)
+
+The skill's own audit always runs and is complete on its own. Open-source scanners are an
+optional second opinion, catalogued in `references/companion-tools.md` (default per domain,
+license, pinned install, read-only command, caveats).
+- Detect what is installed: `for t in lynis aide ssh-audit testssl.sh trivy grype syft hadolint
+  checkov zizmor actionlint semgrep gitleaks betterleaks; do command -v "$t" >/dev/null && echo "$t"; done`
+- Offer the choice **once**, briefly, in the user's language: "I can also run X or Y on this,
+  or keep to my own audit. Which?" If the user already named a tool or asked for an unattended
+  run, skip the question and follow that choice.
+- Nothing relevant installed: name the top one or two for that domain, what each adds and how
+  to install it (distro package or pinned release with checksum). Never install without consent.
+- Read-only modes only: no `--fix`, no remediation, no result upload, telemetry off.
+- Active scans (ssh-audit, testssl.sh, nmap, Nuclei) only against hosts the user owns or is
+  authorized to test; confirm before running.
+- On a production server, warn before anything heavy (vulnerability DB downloads of 140-200 MB,
+  AIDE `--init`, large image scans, Docker Bench) and offer CI or another machine.
+- Label every finding with its source (`[sentinel]`, `[lynis]`, `[trivy]`...), merge duplicates,
+  and still rank by real risk.
+- Never claim a tool ran if it is not installed or failed; say so and give the command instead.

@@ -10,7 +10,7 @@ description: >
   Docker images. Teaches remediation and rotation. Use for "I'm making this repo public", "can I publish this?",
   "I committed .env by mistake", "remove it from history", "did
   Claude save my password?", "is settings.local.json safe to commit?", "secret in .mcp.json",
-  and mentions of secrets, API key, hardcoded password, id_rsa, PII, LGPD, GDPR, gitleaks,
+  and mentions of secrets, API key, hardcoded password, id_rsa, PII, LGPD, GDPR, gitleaks, Betterleaks, TruffleHog,
   filter-repo. Malware: use warden. Hardening: use sentinel.
   Also triggers on the equivalent phrases in other languages.
 ---
@@ -29,11 +29,30 @@ real — the rotation instruction. A secret that was removed but not rotated is 
 
 Reply in the user's language.
 
-**Tooling:** check what is installed before relying on it
-(`which gitleaks trufflehog git-filter-repo`). The bundled `scripts/scan_secrets.py` is
-stdlib-only and covers working tree + git history without external tools. If the user
-wants a second opinion from a mainstream tool, suggest installing gitleaks; never pretend
-to have run something that is not installed.
+### Companion tools (optional)
+
+The bundled scripts are stdlib-only and cover tree + history on their own; that pass
+**always** runs. Open-source scanners can add a second opinion
+(`references/companion-tools.md`: flags, install, network caveats).
+
+1. Detect: `command -v betterleaks gitleaks trivy trufflehog kingfisher git-filter-repo`.
+2. Offer the choice **once**, briefly, in the person's language: run the skill alone, or
+   also with an installed tool (Betterleaks/gitleaks for the repo; Trivy when an image
+   is shipped). If they already named a tool, or asked for an unattended run, follow
+   that without asking.
+3. Nothing installed: name the top one or two (Betterleaks: ~470 provider formats; Trivy:
+   secrets inside image layers) with the pinned install from the reference. **Never install
+   without consent.**
+4. TruffleHog and Kingfisher **verify credentials against providers by default**: run them
+   only on request, with `--no-verification --no-update` / `--no-validate --no-update-check`,
+   unless the person explicitly wants live verification.
+5. Run with the masked, offline flags from the reference, write the report to a file
+   outside the repo, and read it only through
+   `python3 scripts/summarize_external.py REPORT --repo /path/to/repo`. Never paste tool
+   output: several tools put raw values in their reports even when "redacting".
+6. Label each finding with the tool that produced it; merge duplicates with the skill's
+   own; treat the LOW-SIGNAL group (generic rules) as unconfirmed until checked by hand.
+7. Never claim to have run a tool that is not installed, or one whose run failed.
 
 ---
 
@@ -106,7 +125,8 @@ git --no-pager grep -I -n 'password' $(git rev-list --all) 2>/dev/null | head -2
 Always part of the pass, even if nobody mentions an agent. "Yes, and don't ask again" in
 Claude Code saves the approved command line in `.claude/settings.local.json`; a password
 typed inline (`PGPASSWORD=…`, `mysql -p…`, `curl -u user:…`, `-H "Authorization: …"`) is
-then in plain text, without a format that gitleaks/TruffleHog recognize. The file is ignored
+then in plain text, often with no provider format for a scanner to match (gitleaks catches
+`curl -u` and prefixed tokens there, not a bare `PGPASSWORD=` value). The file is ignored
 only by the machine's **global** excludes, so it gets committed elsewhere and shipped by
 `COPY .` in Docker.
 ```bash
@@ -314,5 +334,7 @@ A repo with more than one contributor needs two extra precautions:
 - `references/history-rewrite.md` — git history cleanup, step by step
 - `references/prevention.md` — .gitignore, .env.example, pre-commit hook, publication checklist
 - `references/agent-config-leaks.md` — secrets in coding-agent config files: mechanism, file list per agent, inline-credential shapes, tracking/Docker checks, fixes, research figures
+- `references/companion-tools.md` — optional open-source scanners (Betterleaks, gitleaks, Trivy, TruffleHog, Kingfisher, detect-secrets, git-filter-repo): what each adds, license, pinned install, tested commands with masked/offline flags, network caveats
 - `scripts/scan_secrets.py` — self-contained scanner: working tree + history, with Luhn and entropy
 - `scripts/scan_agent_configs.py` — agent config audit: permission rules, MCP blocks, transcripts, tracking state, history, Dockerfiles; masked output, exit 1 on findings
+- `scripts/summarize_external.py` — value-free summary of gitleaks/Betterleaks/TruffleHog/Kingfisher/Trivy/detect-secrets JSON reports: rule, file, line, commit, date, in HEAD vs history only, generic rules apart; `--json`
