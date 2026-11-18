@@ -358,7 +358,18 @@ keyword-matched criticals to be not-applicable. The value is in the one or two t
    `find` inside `node_modules`)
 3. Verify the vulnerable component or configuration is actually present and reachable
    (a CVE in a feature you never enabled is usually not-applicable)
-4. Only then classify: applicable → patch or mitigate now; not-applicable → close
+4. For runtime CVEs (JVM, interpreter, kernel, CPU-dependent code paths), check the
+   advisory's **preconditions against the running process**, not the package list:
+   the exact runtime inside each container or service (not the default binary on
+   `PATH`), the CPU architecture and feature flags when the advisory names them, and
+   whether attacker-controlled input can reach the code path. A version match alone,
+   an installed-but-idle runtime, or a base-image tag in a Dockerfile is a lead, not
+   a finding
+5. Scope the verdict to what was inventoried: not-applicable on one host, image or
+   vendor build says nothing about another. Fix availability is per vendor too — a
+   patched release announced by one distribution does not mean yours has shipped;
+   confirm the artifact exists (tag + digest) and read its version before pinning
+6. Only then classify: applicable → patch or mitigate now; not-applicable → close
    **with the reason recorded**
 
 **Backlog lifecycle — never let tracked CVEs rot in "new":**
