@@ -42,3 +42,9 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Google service-account keys (google-seo-data)
+sa.json
+*-sa.json
+*service-account*.json
+*.iam.gserviceaccount.com*.json
