@@ -760,6 +760,10 @@ Ref: https://owasp.org/www-project-top-10-for-large-language-model-applications/
     (vendor + project), not the keyword that matched
 [ ] Cross-check against the actually installed stack (commands below)
 [ ] Check the vulnerable component/feature is actually enabled and reachable
+[ ] Runtime CVEs: check the advisory's preconditions on the RUNNING process
+    (exact runtime per container, CPU features, reachable input) — see below
+[ ] Scope the verdict to the hosts/images actually inventoried; never reuse it
+    for another host, image or vendor build
 [ ] Classify: applicable → patch/mitigate now | not-applicable → close WITH reason
 [ ] Write ONE consolidated triage note for the window; close individual CVE
     notes referencing it
@@ -791,6 +795,33 @@ done
 #   installed_version < fixed_version (watch out for backported distro patches —
 #   check `apt changelog` / USN before assuming vulnerable)
 ```
+
+### Verification Commands — "does the running runtime meet the preconditions?"
+```bash
+# The JVM inside each running container (not the host's default `java`)
+for c in $(docker ps --format '{{.Names}}'); do
+  v=$(docker exec "$c" java -version 2>&1 | grep -m1 'Runtime Environment') && echo "$c: $v"
+done
+
+# Host processes: which binary is each JVM really running?
+for pid in $(pgrep -x java); do echo "$pid $(readlink /proc/$pid/exe 2>/dev/null)"; done
+
+# CPU features the advisory names (example: an AVX-512-only code path)
+grep -m1 '^flags' /proc/cpuinfo | tr ' ' '\n' | grep -E 'avx512|bmi2'
+
+# Effective JVM setting on that CPU. This starts a NEW JVM from the same binary:
+# good evidence for CPU-derived defaults, not proof of the live process's flags
+docker exec CONTAINER java -XX:+PrintFlagsFinal -version | grep -E ' UseAVX | FLAG_NAME '
+
+# Is the fixed build really published for YOUR vendor/OS/arch? Read it, don't assume
+docker run --rm --network none --entrypoint java IMAGE:TAG@sha256:DIGEST -version
+```
+
+Record per instance: runtime + environment, evidence, verdict (affected /
+not-affected / needs-confirmation), target version + digest, validation, rollback.
+An idle vulnerable runtime on a host that meets the preconditions is latent risk:
+note it and patch with the next vendor update, but do not report it as exploited
+or as safe.
 
 ### Backlog Hygiene Policy (for accumulated `status: new` piles)
 
