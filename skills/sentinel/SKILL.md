@@ -373,6 +373,25 @@ keyword-matched criticals to be not-applicable. The value is in the one or two t
 - A healthy end state is a small number of open, genuinely applicable CVEs with an
   explicit accepted-risk note — not hundreds of stale "new" entries nobody looks at
 
+**Running triage as a scheduled pipeline — lessons from production:**
+- **Inventory every host that runs the workload.** After a migration the old host often keeps
+  stopped containers and an idle runtime; "no active JVM here" on the old box says nothing about
+  the new one. Collect each host separately, tag every evidence row with its host, and never let
+  a verdict on one host close the item on another. A failed remote collection is incomplete
+  coverage (alert on it), not an empty inventory.
+- **Kernel-only CVEs do not belong in an LLM queue.** Distribution kernels absorb hundreds of
+  them a month. Resolve them deterministically from the host's posture: running the newest
+  security kernel of the distro → distro-managed; behind or reboot pending → one operational
+  warning per host. Exception: anything on CISA KEV still goes to a human/agent review.
+- **Give reviews a validity window** (e.g. 7 days) bound to host + component + version, so the
+  same items do not re-enter the queue every day, and a version change invalidates them.
+- **Deduplicate watchdog alerts by the kind of problem, not by its counters.** "407 reviews
+  overdue" and "408 reviews overdue" are the same condition; fingerprinting the raw text turns
+  a growing counter into a message every run.
+- **Out-of-scope systems are invisible, not "ignored later".** Filter them at collection time
+  (containers, processes, paths) and again before anything is stored, so no prompt, note or
+  alert ever contains them.
+
 ---
 
 ## Ethics and Limits
@@ -409,6 +428,22 @@ optional second opinion, catalogued in `references/companion-tools.md` (default 
 license, pinned install, read-only command, caveats).
 - Detect what is installed: `for t in lynis aide ssh-audit testssl.sh trivy grype syft hadolint
   checkov zizmor actionlint semgrep gitleaks betterleaks; do command -v "$t" >/dev/null && echo "$t"; done`
+- **Structured runs (optional):** `scripts/sentinel_toolbox.py` (stdlib only) does the same detection
+  per host and wraps the core read-only tools with one JSON schema, so results can be diffed,
+  stored or fed to another agent instead of re-reading raw output:
+  - `check [--all-hosts] [--text]` lists what is missing or broken (installed but service inactive,
+    known-compromised version) with the catalog's purpose, trust level and install channel
+    (`references/toolbox-catalog.json`). It suggests; it never installs.
+  - `run <tool> [targets] [--host LABEL]` wraps needrestart, lynis, testssl, debsums, gitleaks,
+    osv-scanner, trivy and docker-bench → `sentinel-toolbox/v1` JSON (`counts`, `summary`, and
+    `findings[]` with `id`, `severity`, `title`, `location`, `detail`). gitleaks always runs with
+    `--redact` and the wrapper never stores the secret or the matched line; trivy releases
+    known to be compromised are refused.
+  - Remote hosts (`SENTINEL_TOOLBOX_HOSTS="label=ssh_alias"`) get the script over **one** SSH
+    connection per call (stdin tarball, nothing left installed), which matters on hosts that
+    rate-limit new SSH connections. Out-of-scope systems: `SENTINEL_SCOPE_EXCLUDE_RE`.
+  - `check --all-hosts --notify-cmd 'CMD'` is meant for a weekly scheduler: CMD receives a short
+    summary on stdin only when the suggestion set changes (or every 28 days).
 - Offer the choice **once**, briefly, in the user's language: "I can also run X or Y on this,
   or keep to my own audit. Which?" If the user already named a tool or asked for an unattended
   run, skip the question and follow that choice.

@@ -1,0 +1,309 @@
+{
+  "schema": "sentinel-toolbox-catalog/v1",
+  "updated": "2026-11-19",
+  "policy": [
+    "Only read-only scanners and auditors. No resident agents or daemons (no runtime eBPF sensors, no SIEM agents).",
+    "Prefer the distro package (signed, security-patched). Otherwise a pinned upstream release at least 14 days old, verified by checksum and signature/provenance when published. Pinned versions and checksums: companion-tools.md.",
+    "Sentinel SUGGESTS. Installing anything requires the owner's explicit consent.",
+    "Every run writes normalized JSON (schema sentinel-toolbox/v1). Secrets are never written: secret scanners run redacted and only rule/file/line/commit/fingerprint are kept.",
+    "Out-of-scope systems: targets, containers and findings matching SENTINEL_SCOPE_EXCLUDE_RE are dropped."
+  ],
+  "tools": [
+    {
+      "id": "auditd",
+      "binary": "auditctl",
+      "version_cmd": [
+        "auditctl",
+        "-v"
+      ],
+      "category": "host-baseline",
+      "priority": 1,
+      "weight": "light (kernel audit; already standard)",
+      "purpose": "Kernel audit trail for sensitive files and privileged commands.",
+      "why_here": "A host without it has no trail of who changed /etc, sshd config, sudoers or systemd units. Filter execve rules by auid so container processes do not flood the log.",
+      "trust": {
+        "maintainer": "Linux Audit project / Red Hat",
+        "license": "GPL-2.0",
+        "channel": "distro package (Debian/Ubuntu)",
+        "level": "high",
+        "notes": ""
+      },
+      "install": {
+        "method": "distro",
+        "package": "auditd",
+        "service": "auditd"
+      },
+      "wrapper": null
+    },
+    {
+      "id": "fail2ban",
+      "binary": "fail2ban-client",
+      "version_cmd": [
+        "fail2ban-client",
+        "--version"
+      ],
+      "category": "host-baseline",
+      "priority": 1,
+      "weight": "light (log-based ban; already standard)",
+      "purpose": "Bans IPs after repeated authentication failures.",
+      "why_here": "Standard SSH brute-force guard. Note: a firewall rate limit (e.g. ufw limit) produces the same 'Connection refused' symptom with the opposite fix.",
+      "trust": {
+        "maintainer": "fail2ban project",
+        "license": "GPL-2.0",
+        "channel": "distro package (Debian/Ubuntu)",
+        "level": "high",
+        "notes": ""
+      },
+      "install": {
+        "method": "distro",
+        "package": "fail2ban",
+        "service": "fail2ban"
+      },
+      "wrapper": null
+    },
+    {
+      "id": "needrestart",
+      "binary": "needrestart",
+      "version_cmd": [
+        "needrestart",
+        "--version"
+      ],
+      "category": "patch-hygiene",
+      "priority": 1,
+      "weight": "light (seconds)",
+      "purpose": "Lists the kernel and services still running old (patched-on-disk) libraries.",
+      "why_here": "Tells whether an applied security update is actually live, which is exactly the gap after an apt upgrade or a pending reboot.",
+      "trust": {
+        "maintainer": "Thomas Liske / Debian",
+        "license": "GPL-2.0",
+        "channel": "distro package (Debian/Ubuntu) (installed by default)",
+        "level": "high",
+        "notes": ""
+      },
+      "install": {
+        "method": "distro",
+        "package": "needrestart"
+      },
+      "wrapper": "needrestart"
+    },
+    {
+      "id": "lynis",
+      "binary": "lynis",
+      "version_cmd": [
+        "lynis",
+        "show",
+        "version"
+      ],
+      "category": "hardening-audit",
+      "priority": 1,
+      "weight": "light (2-4 min, weekly)",
+      "purpose": "Host hardening audit with warnings, suggestions and a 0-100 hardening index.",
+      "why_here": "Gives a comparable weekly score per host; the drift of the index is the signal.",
+      "trust": {
+        "maintainer": "CISOfy",
+        "license": "GPL-3.0",
+        "channel": "distro package (Debian/Ubuntu)",
+        "scorecard": "5.2 (OpenSSF, 2026-11-16)",
+        "level": "high",
+        "notes": "Shell script, read-only, long-lived project; distributed through the signed distro archive."
+      },
+      "install": {
+        "method": "distro",
+        "package": "lynis"
+      },
+      "wrapper": "lynis"
+    },
+    {
+      "id": "testssl",
+      "binary": "testssl",
+      "alt_binaries": [
+        "testssl.sh"
+      ],
+      "version_cmd": [
+        "testssl",
+        "--version"
+      ],
+      "category": "tls-audit",
+      "priority": 1,
+      "weight": "light (1-3 min per domain, weekly)",
+      "purpose": "Local TLS/cipher/protocol/certificate audit of our own domains, JSON output.",
+      "why_here": "Same signal as SSL Labs without depending on a third-party API or its rate limits.",
+      "trust": {
+        "maintainer": "testssl.sh project (Dirk Wetter)",
+        "license": "GPL-2.0",
+        "channel": "distro package (Debian/Ubuntu)",
+        "level": "high",
+        "notes": "Bash + openssl, no daemon. Scan only our own domains."
+      },
+      "install": {
+        "method": "distro",
+        "package": "testssl.sh"
+      },
+      "wrapper": "testssl"
+    },
+    {
+      "id": "debsums",
+      "binary": "debsums",
+      "version_cmd": [
+        "dpkg-query",
+        "-W",
+        "-f=${Version}",
+        "debsums"
+      ],
+      "category": "integrity",
+      "priority": 2,
+      "weight": "light (a few minutes, weekly)",
+      "purpose": "Verifies installed package files against the package checksums (changed binaries/configs).",
+      "why_here": "Cheap tamper check for system binaries; complements sentinel-baseline without a resident daemon like AIDE.",
+      "trust": {
+        "maintainer": "Debian",
+        "license": "GPL-2.0",
+        "channel": "distro package (Debian/Ubuntu)",
+        "level": "high",
+        "notes": ""
+      },
+      "install": {
+        "method": "distro",
+        "package": "debsums"
+      },
+      "wrapper": "debsums"
+    },
+    {
+      "id": "gitleaks",
+      "binary": "gitleaks",
+      "version_cmd": [
+        "gitleaks",
+        "version"
+      ],
+      "category": "secrets",
+      "priority": 1,
+      "weight": "light (seconds-minutes per repo, weekly)",
+      "purpose": "Finds secrets committed to git repositories and their history.",
+      "why_here": "Catches the next committed credential before it reaches a backup or public repo.",
+      "trust": {
+        "maintainer": "gitleaks (Zach Rice)",
+        "license": "MIT",
+        "channel": "distro package (Debian/Ubuntu) (8.16, older rules) or pinned upstream release",
+        "level": "high",
+        "notes": "Upstream is feature-complete / security-patch-only in 2026; its creator moved to Betterleaks (too new to trust yet). Always run with --redact; the wrapper never stores the secret or match."
+      },
+      "install": {
+        "method": "distro",
+        "package": "gitleaks"
+      },
+      "wrapper": "gitleaks"
+    },
+    {
+      "id": "osv-scanner",
+      "binary": "osv-scanner",
+      "version_cmd": [
+        "osv-scanner",
+        "--version"
+      ],
+      "category": "dependencies",
+      "priority": 1,
+      "weight": "light (seconds per repo, daily/weekly)",
+      "purpose": "Checks declared dependencies (Gradle/Maven/npm/pip lockfiles) against the OSV database.",
+      "why_here": "The CVE pipeline sees what is RUNNING; this sees what is DECLARED and will ship in the next deploy.",
+      "trust": {
+        "maintainer": "Google (google/osv-scanner)",
+        "license": "Apache-2.0",
+        "channel": "pinned GitHub release",
+        "scorecard": "8.6 (OpenSSF, 2026-11-18)",
+        "level": "high",
+        "notes": ""
+      },
+      "install": {
+        "method": "release",
+        "source": "https://github.com/google/osv-scanner/releases",
+        "verify": "SHA256 from the release checksums file + SLSA provenance when present; version >= 14 days old"
+      },
+      "wrapper": "osv-scanner"
+    },
+    {
+      "id": "trivy",
+      "binary": "trivy",
+      "version_cmd": [
+        "trivy",
+        "--version"
+      ],
+      "category": "containers",
+      "priority": 2,
+      "weight": "medium (DB download + minutes per image, weekly)",
+      "purpose": "Vulnerabilities in running Docker images, plus misconfiguration and SBOM.",
+      "why_here": "Covers the images actually running, including bundled runtimes (JVM, Node) the host package manager cannot see.",
+      "trust": {
+        "maintainer": "Aqua Security",
+        "license": "Apache-2.0",
+        "channel": "pinned GitHub release",
+        "scorecard": "6.4 (OpenSSF, 2026-03-16, stale)",
+        "level": "medium",
+        "notes": "Supply-chain compromise in March 2026: malicious binary v0.69.4 and Docker images v0.69.5/v0.69.6 (GHSA-69fq-xp46-6x23); trivy-action tags were hijacked. Install only a pinned post-incident release, verify cosign signature + checksum, never use floating tags."
+      },
+      "known_bad_versions": [
+        "0.69.4",
+        "0.69.5",
+        "0.69.6"
+      ],
+      "install": {
+        "method": "release",
+        "source": "https://github.com/aquasecurity/trivy/releases",
+        "verify": "cosign verify-blob + SHA256; post-incident version only"
+      },
+      "wrapper": "trivy"
+    },
+    {
+      "id": "docker-bench",
+      "binary": "docker-bench-security.sh",
+      "path_env": "SENTINEL_DOCKER_BENCH_DIR",
+      "default_dir": "/opt/docker-bench-security",
+      "category": "containers",
+      "priority": 2,
+      "weight": "light (1-2 min, weekly)",
+      "purpose": "CIS Docker Benchmark checks for the daemon, host and running containers.",
+      "why_here": "Complements sentinel-audit.sh docker with the full CIS list.",
+      "trust": {
+        "maintainer": "Docker Inc.",
+        "license": "Apache-2.0",
+        "channel": "git clone at a pinned commit (shell script, auditable)",
+        "scorecard": "6.7 (OpenSSF, 2026-11-16)",
+        "level": "high",
+        "notes": "Do not use the old Docker Hub image; run the script from a reviewed commit."
+      },
+      "install": {
+        "method": "git",
+        "source": "https://github.com/docker/docker-bench-security",
+        "verify": "pinned commit, reviewed diff"
+      },
+      "wrapper": "docker-bench"
+    },
+    {
+      "id": "nuclei",
+      "binary": "nuclei",
+      "version_cmd": [
+        "nuclei",
+        "-version"
+      ],
+      "category": "external-exposure",
+      "priority": 3,
+      "weight": "medium (sends traffic; weekly, rate-limited)",
+      "purpose": "Template-based check of our public endpoints for known CVEs and exposures.",
+      "why_here": "Optional outside-in view. Only our own domains, low rate (Cloudflare in front).",
+      "trust": {
+        "maintainer": "ProjectDiscovery",
+        "license": "MIT",
+        "channel": "pinned GitHub release",
+        "scorecard": "6.4 (OpenSSF, 2026-11-02)",
+        "level": "medium",
+        "notes": "Community templates execute requests; pin the templates version too."
+      },
+      "install": {
+        "method": "release",
+        "source": "https://github.com/projectdiscovery/nuclei/releases",
+        "verify": "SHA256; pinned templates"
+      },
+      "wrapper": null
+    }
+  ],
+  "scorecard_note": "OpenSSF Scorecard values were read from api.securityscorecards.dev on 2026-11-19; the date in each entry is the date of the scorecard run."
+}

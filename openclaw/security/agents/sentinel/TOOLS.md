@@ -485,6 +485,13 @@ All suggested tools are:
 3. **Install when needed:** nmap, trivy, testssl.sh, CrowdSec
 4. **Optional/advanced:** trufflehog, gitleaks, AIDE
 
+### Structured toolbox (optional)
+The `sentinel` skill ships `scripts/sentinel_toolbox.py` (stdlib only). `check --all-hosts --text`
+shows which vetted read-only tools are missing per host and why they would help;
+`run <tool> [--host LABEL]` runs an installed one and writes normalized JSON (schema
+`sentinel-toolbox/v1`). It suggests tools, it never installs them. See the skill's
+`references/toolbox-catalog.json` for trust notes and install channels.
+
 ### Human Approval
 Actions requiring `requires_approval: true`:
 - Any firewall rule modification
