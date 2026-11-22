@@ -16,8 +16,14 @@ All of them: **1080x1920, 9:16, H.264 High@4.2, yuv420p, `-movflags +faststart`*
 | Audio | AAC 192k / 48kHz | AAC 128k / 44.1kHz | AAC 128k / 44.1kHz |
 | Max size | 256 MB | 287 MB | 250 MB |
 
-LinkedIn: prefer **1:1 (1080x1080)** — the desktop feed crops the 9:16
-preview (already the recorded decision in SKILL.md). Max 10 min / 5 GB.
+LinkedIn: 1:1 (1080x1080) or **4:5 (1080x1350)**, never the raw 9:16 — the
+desktop feed crops the 9:16 preview. The channel's current default is 4:5
+(1:1 was vetoed on small sources). Max 10 min / 5 GB.
+
+These are the platform limits. What this channel actually ships (bitrates of
+live files, caption sizes, transition strength, 4:5 vs 1:1, file naming) is in
+**`house-style-instagram-linkedin.md`**; read it before rendering a Reels +
+LinkedIn pair.
 
 ## Loudness: -14 LUFS EVERYWHERE
 

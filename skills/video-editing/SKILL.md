@@ -164,8 +164,10 @@ cutting each segment (one encode) — see `02b-cut-blurpad.sh` in the examples.
 ## 4. Recipe: 1:1 or 4:5 for LinkedIn from the 9:16 cut (blur sides + captions, one encode)
 
 LinkedIn's desktop feed crops the 9:16 preview; 1:1 (1080x1080) or 4:5
-(1080x1350) perform better. Reuse the 9:16 `.ass` via sed (this preserves the
-QA corrections — do NOT re-transcribe):
+(1080x1350) perform better. **Default to 4:5** (1:1 was vetoed on small
+sources; see `references/house-style-instagram-linkedin.md` for when 1:1 is
+fine). Reuse the 9:16 `.ass` via sed (this preserves the QA corrections — do
+NOT re-transcribe):
 
 ```bash
 # 1:1
@@ -450,6 +452,13 @@ Refinements from the research workflow (4 agents, recipes EXECUTED on 4.4.2):
 
 See **`references/platform-specs.md`** — bitrate, max duration, file size,
 safe zones and the QA command that paints the guides onto a frame.
+
+For an Instagram + LinkedIn pair, also read
+**`references/house-style-instagram-linkedin.md`**: what this channel has
+actually shipped (measured on live clips), side by side per platform —
+canvas, caption size and margin, transition strength, bitrate, file naming —
+plus the preferences to apply when the user does not specify (4:5 over 1:1,
+CRF 18 vs the Reels bitrate table, English captions).
 
 The three facts that bite most:
 
