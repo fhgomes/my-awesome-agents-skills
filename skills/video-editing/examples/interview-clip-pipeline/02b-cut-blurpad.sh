@@ -13,7 +13,7 @@ NAME="${NAME:-clip2}"
 # Each "to" = the END of the last word (Whisper `end`); TAIL_PAD is added so the
 # word finishes before the next segment (SKILL.md section 2.1).
 SEGMENTS="${SEGMENTS:-146.05-152.00,52.24-63.70,76.30-134.20}"
-TAIL_PAD="${TAIL_PAD:-0.4}"        # 0.3 to 0.5 s; lower it only if the next word starts sooner
+TAIL_PAD="${TAIL_PAD:-0.4}"        # 0.3 to 0.5 s; use 0.5 for Portuguese speech; lower it only if the next word starts sooner
 
 FC='[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30[bg];[0:v]scale=-2:1920[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v]'
 ENC=(-c:v libx264 -preset slow -crf 18 -r 30 -c:a aac -b:a 192k -ar 48000 -ac 2)

@@ -126,8 +126,8 @@ skill. The skill has to run unchanged on any computer.
    kept coming out "dry": the last word was chopped before its sound finished,
    right as the next segment, transition or frame came in. Never put an
    out-point on a Whisper word `end`; put it at `end + 0.3–0.5 s` (default
-   0.4) and check it on the waveform. Full rule, exceptions and the check in
-   section 2.1.
+   0.4; **0.5 for Portuguese**, where it happened most) and check it on the
+   waveform. Full rule, exceptions and the check in section 2.1.
 
 ## 2. Recipe: cut with a splice (cold open + take)
 
@@ -168,11 +168,22 @@ the sound actually stops, and more on a final "s", "t" or a falling
 intonation. A cut placed on `end` (or snapped to it), plus a fade or a
 transition that starts at that point, eats the tail of the word.
 
+**It depends on the language.** In review the dry cuts showed up mostly on
+**Portuguese** speech; English clips cut with the same pipeline rarely had the
+problem. A likely reason (not measured yet): Portuguese phrase endings are
+quiet and long, with unstressed final vowels that fade or devoice ("part(e)",
+"demais"), nasal endings that trail ("-ão", "-em") and falling intonation, so
+the low-energy tail sits after the point Whisper marks; English endings tend
+to close on a clearer consonant.
+
 **Rule.**
 
 - Every out-point (end of the hook, end of each body segment, end of the clip)
-  = **last word `end` + 0.3 to 0.5 s**. Default 0.4 s; 0.5 s for a slow
-  speaker or a sentence that ends with falling intonation; 0.3 s is the floor.
+  = **last word `end` + 0.3 to 0.5 s**.
+  - **Portuguese (and other languages with soft endings): 0.5 s by default.**
+  - English: 0.3–0.4 s is usually enough; still check the waveform.
+  - Also go to 0.5 s for a slow speaker or a sentence that ends with falling
+    intonation, in any language. 0.3 s is the floor.
 - In-points can stay tight (≈ 0.05–0.1 s before the first word `start`): the
   problem is the tail, not the head.
 - **Transitions start AFTER the tail.** The hook→take zoom/flash runs over the

@@ -15,7 +15,7 @@ NAME="${NAME:-clip1}"
 # Whisper ends come early and "dry" cuts were a recurring problem).
 HOOK_FROM="${HOOK_FROM:-41.40}";  HOOK_TO="${HOOK_TO:-46.65}"
 BODY_FROM="${BODY_FROM:-14.42}";  BODY_TO="${BODY_TO:-55.66}"
-TAIL_PAD="${TAIL_PAD:-0.4}"        # 0.3 to 0.5 s; lower it only if the next word starts sooner
+TAIL_PAD="${TAIL_PAD:-0.4}"        # 0.3 to 0.5 s; use 0.5 for Portuguese speech; lower it only if the next word starts sooner
 HOOK_TO=$(awk "BEGIN{print $HOOK_TO+$TAIL_PAD}")
 BODY_TO=$(awk "BEGIN{print $BODY_TO+$TAIL_PAD}")
 echo "padded out-points: hook $HOOK_FROM-$HOOK_TO, body $BODY_FROM-$BODY_TO (use these in word_captions_map.py --segments)"
