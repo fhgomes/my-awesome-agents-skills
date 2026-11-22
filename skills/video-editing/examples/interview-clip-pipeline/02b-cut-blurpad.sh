@@ -10,7 +10,10 @@ NAME="${NAME:-clip2}"
 
 # "from-to" pairs on the ORIGINAL timeline, in order of appearance in the clip.
 # First pair = cold open (hook). Placeholders — set yours.
+# Each "to" = the END of the last word (Whisper `end`); TAIL_PAD is added so the
+# word finishes before the next segment (SKILL.md section 2.1).
 SEGMENTS="${SEGMENTS:-146.05-152.00,52.24-63.70,76.30-134.20}"
+TAIL_PAD="${TAIL_PAD:-0.4}"        # 0.3 to 0.5 s; lower it only if the next word starts sooner
 
 FC='[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30[bg];[0:v]scale=-2:1920[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,format=yuv420p[v]'
 ENC=(-c:v libx264 -preset slow -crf 18 -r 30 -c:a aac -b:a 192k -ar 48000 -ac 2)
@@ -21,9 +24,10 @@ i=0
 IFS=',' read -ra PAIRS <<< "$SEGMENTS"
 for pair in "${PAIRS[@]}"; do
   from="${pair%-*}"; to="${pair#*-}"; i=$((i+1))
+  to=$(awk "BEGIN{print $to+$TAIL_PAD}")
   extra=()
-  if [ "$i" -eq "${#PAIRS[@]}" ]; then   # fade the audio out on the last segment
-    extra=(-af "afade=t=out:st=$(awk "BEGIN{print $to-$from-0.25}"):d=0.25")
+  if [ "$i" -eq "${#PAIRS[@]}" ]; then   # fade the audio out on the last segment, inside the tail only
+    extra=(-af "afade=t=out:st=$(awk "BEGIN{print $to-$from-0.12}"):d=0.12")
   fi
   ffmpeg -nostdin -y -loglevel error -i "$IN" -ss "$from" -to "$to" -filter_complex "$FC" \
     -map '[v]' -map 0:a "${extra[@]}" "${ENC[@]}" "s$i.mp4"

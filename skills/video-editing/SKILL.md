@@ -122,6 +122,12 @@ skill. The skill has to run unchanged on any computer.
 5. **Visual QA always**: after every render extract 2–3 frames at known
    timestamps and check framing, the right caption, and the format.
 6. **Delivery QA always**: the `ffprobe` profile/pix_fmt check from section 0.
+7. **Give the last word 0.3–0.5 s before any cut (recurring problem).** Cuts
+   kept coming out "dry": the last word was chopped before its sound finished,
+   right as the next segment, transition or frame came in. Never put an
+   out-point on a Whisper word `end`; put it at `end + 0.3–0.5 s` (default
+   0.4) and check it on the waveform. Full rule, exceptions and the check in
+   section 2.1.
 
 ## 2. Recipe: cut with a splice (cold open + take)
 
@@ -149,6 +155,55 @@ ffmpeg -nostdin -y -f concat -safe 0 -i concat.txt -c copy "$OUT/FINAL.mp4" -log
 Check the final duration with ffprobe (sum of the segments ± 0.1 s). A
 complete, parameterized version of this pipeline lives in
 `examples/interview-clip-pipeline/`.
+
+### 2.1 Tail room: let the last word finish (learned from repeated "dry" cuts)
+
+**Symptom.** In review, cuts felt abrupt: the final consonant or the natural
+decay of the last word was missing, because the next segment, the hook→take
+transition or the next frame started too early. It happened on many clips,
+not on one.
+
+**Why.** Whisper's word `end` timestamp comes EARLY: often 50–200 ms before
+the sound actually stops, and more on a final "s", "t" or a falling
+intonation. A cut placed on `end` (or snapped to it), plus a fade or a
+transition that starts at that point, eats the tail of the word.
+
+**Rule.**
+
+- Every out-point (end of the hook, end of each body segment, end of the clip)
+  = **last word `end` + 0.3 to 0.5 s**. Default 0.4 s; 0.5 s for a slow
+  speaker or a sentence that ends with falling intonation; 0.3 s is the floor.
+- In-points can stay tight (≈ 0.05–0.1 s before the first word `start`): the
+  problem is the tail, not the head.
+- **Transitions start AFTER the tail.** The hook→take zoom/flash runs over the
+  last 0.3 s of the hook (section 8), so a 0.4 s tail keeps it on silence. An
+  `xfade` of duration `d` must have `offset ≥ last_word_end + 0.3` (on the
+  joined timeline), never `offset = last_word_end`.
+- Audio fade-out only inside the tail, never over the word:
+  `afade=t=out:st=<seg_len − 0.12>:d=0.12`. A fade that starts at the word end
+  is the same bug as cutting there.
+- When the tail is padded, pass the SAME padded times to
+  `word_captions_map.py --segments`, or the captions drift by the pad.
+
+**Exception: the next word starts sooner.** If the speaker goes straight into
+the next word (< 0.3 s of gap) the pad would leak it. Cut at the quietest
+point of that gap (lowest RMS), with a 0.04–0.06 s fade, and accept a shorter
+tail. Never trade a leaked syllable for a longer tail.
+
+**Check, don't trust the timestamp.** Measure the level around the cut on the
+ORIGINAL (10 ms windows):
+
+```bash
+# from 0.3 s before the word end to 0.8 s after it
+ffmpeg -nostdin -v error -ss <word_end-0.3> -t 1.1 -i IN.mp4 \
+  -af "asetnsamples=480,astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level" \
+  -f null - 2>&1 | grep -o "RMS_level=.*"
+```
+
+The out-point is good when the RMS at that time has fallen back to the room
+noise (roughly 20 dB below the speech level). Then LISTEN to the last second
+of every segment on headphones before the final render. Quick listen file:
+`ffmpeg -sseof -1.5 -i SEG.mp4 -c copy tail.mp4`.
 
 ## 3. Recipe: 9:16 with blurred background (horizontal sources only!)
 

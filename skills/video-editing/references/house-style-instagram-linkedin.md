@@ -22,6 +22,7 @@ re-cut or re-transcribe for LinkedIn: derive it from the 9:16 (`04-render-linked
 | NVENC trap | always `-pix_fmt yuv420p -profile:v main` (or `high`), and close filter chains with `format=yuv420p`; otherwise phone/screen sources leave as H.264 4:4:4 and Instagram/LinkedIn refuse the file |
 | Audio | AAC stereo 192k / 48 kHz (what the six live clips have), `loudnorm=I=-14:TP=-1:LRA=11`, 2-pass for delivery |
 | Captions | word-level, UPPERCASE, burned in, in the language of the audience (this channel: always English, even when the speech is in another language; the speech stays as recorded) |
+| Cut tail | every out-point = last word `end` + 0.3–0.5 s (default 0.4), transitions and fades start after it; "dry" cuts were a recurring review complaint (SKILL.md section 2.1) |
 | Structure | cold open of 2–4 s with the strongest line, then the full take; a credentials intro becomes a burned caption on the first frame; false starts and a trailing "Okay." stay out |
 | Delivery QA | `ffprobe ... stream=profile,pix_fmt` must say `High`/`Main` and `yuv420p`, plus the safe-zone frame from `platform-specs.md` |
 
