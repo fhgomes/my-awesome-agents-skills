@@ -92,6 +92,8 @@ Rules of conduct:
 .claude/settings.local.json
 CLAUDE.local.md
 .claude/*.local.*
+.devin/config.local.json
+.devin/mcp_config.local.json
 ```
 
 The docs themselves tell you to ignore `CLAUDE.local.md` by hand. `.cursor/cli.json`,
@@ -475,6 +477,7 @@ forks and images while you clean up.
 | Claude Code | `.claude/settings.local.json` at the repo root (Bash, WebFetch). In VS Code the approval card lets you pick the file, including the shared `.claude/settings.json` | Inside the repo: `.gitignore` + `.dockerignore` + CI |
 | Codex CLI | Approving / allow-listing in the TUI writes to `~/.codex/rules/default.rules` (user layer, Starlark `prefix_rule`). Project rules in `<repo>/.codex/rules/` load only when `.codex/` is trusted | Outside the repo by default; the risk is a dotfiles repo or a backup that carries `~/.codex/`. Test rules with `codex execpolicy check --rules ...` |
 | Cursor CLI | Permissions in `~/.cursor/cli-config.json` (global) or `<project>/.cursor/cli.json`, rules shaped `Shell(cmd)`. On the official forum the team confirmed that "Always allow" writes to the **global** file when the project `cli.json` has a `permissions` section | Audit both; `.cursor/` in `.dockerignore`; scan before committing `cli.json` |
+| Devin (CLI/Desktop) | `permissions.allow` rules like `Exec(cmd)` live in `.devin/config.json` / `.devin/config.local.json` (project) and `~/.config/devin/config.json` / `%APPDATA%\devin\config.json` (user). Hooks in `.devin/hooks.v1.json` or the `hooks` key of the config files; MCP servers in `mcp_config.json` (`.local` variant is gitignored). `permission_mode: "dangerous"` and `local_tools_bypass_permissions` exist but are user-config only | Treat `.devin/*.local.json` like `settings.local.json`: `.gitignore` + `.dockerignore` + CI; the shared `.devin/config.json` can be committed, so scan it before committing |
 | Gemini CLI | Policies in `~/.gemini/policies/*.toml` (user), `/etc/gemini-cli/policies` (admin), workspace `.gemini/policies` (the docs say this tier does not work yet); settings in `~/.gemini/settings.json` and `.gemini/settings.json`. There is an "Allow for all future sessions" option, but the docs **do not say** which file it writes to | Treat `.gemini/` as sensitive; not confirmed whether the approval stores the literal command |
 | Copilot CLI and others | Not confirmed in this review | Apply the same principle: find the persistent-approval file before trusting it |
 

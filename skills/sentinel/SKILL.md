@@ -308,6 +308,11 @@ Principles:
 - Claude Code: `Read` deny rules for secret files, a PreToolUse hook that denies literal
   credentials and environment dumps, managed settings (`allowManagedPermissionRulesOnly`) on
   shared servers and CI, the sandbox for OS-level enforcement
+- Devin: same shape, different files — `permissions.allow` (`Exec(...)` rules) in
+  `.devin/config.json` / `config.local.json` and `%APPDATA%/devin/config.json`
+  (`~/.config/devin/config.json` on Linux/macOS), hooks in `.devin/hooks.v1.json` or the
+  `hooks` key, MCP servers in `mcp_config.json` (`mcp_config.local.json` is the gitignored
+  variant); `permission_mode: "dangerous"` is a user-only option but worth flagging anywhere
 - Audit broad allow rules, MCP config with literal tokens, permissions on `~/.claude*`, transcripts
 - Incident: **rotate first**, then remove, then history, forks, images, packages
 

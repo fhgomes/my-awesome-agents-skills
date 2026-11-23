@@ -64,6 +64,7 @@ files leak when someone copies `~/.claude` into a dotfiles repo, a backup, or an
 | Continue | `.continue/mcpServers/*.yaml` / `*.json`, `.continue/config.yaml` | `env`, `args`; correct pattern `${{ secrets.NAME }}` |
 | Aider | `.aider.conf.yml` (home, repo root, cwd) | `openai-api-key`, `anthropic-api-key`, `api-key`, `set-env`; history in `.aider.chat.history.md`, `.aider.input.history` |
 | SpecStory | `.specstory/` | saved agent chats (named in the Apiiro research as secret-bearing) |
+| Devin (CLI/Desktop) | user `~/.config/devin/config.json` + `mcp_config.json` (`%APPDATA%\devin\` on Windows); project `.devin/config.json`, `.devin/config.local.json` (gitignored), `.devin/mcp_config.json`, `.devin/mcp_config.local.json` (gitignored), `.devin/hooks.v1.json` | `mcpServers.*.env`/`headers`, `permissions.allow` entries like `Exec(cmd)` (the approved command can sit there literally), `hooks.*.command`; project config holds only `permissions`, `read_config_from` and `hooks`. Older versions stored `mcpServers` inside `config.json` itself. Local session state lives in the CLI directory (`%APPDATA%\devin\cli\sessions.db`, a SQLite file) — the same "transcripts are plain text at rest" caveat applies |
 
 Correct patterns are only correct when the referenced variable is set outside the repo.
 

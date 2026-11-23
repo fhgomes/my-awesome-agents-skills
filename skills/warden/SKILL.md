@@ -254,8 +254,11 @@ grep -rnE 'eval\(|exec\(|child_process|Function\(|atob\(|Invoke-Expression|IEX |
 
 ### C. URL / website
 **Never** browse a suspicious URL with the user's logged-in browser
-(e.g. `mcp__claude-in-chrome__*`) — session cookies leak and drive-by downloads run in the real profile.
-If you need to see the page, use an isolated browser (e.g. `mcp__Claude_Browser__*`).
+(e.g. `mcp__claude-in-chrome__*` in Claude, or Playwright MCP in `--extension` mode in
+Devin and other agents) — session cookies leak and drive-by downloads run in the real
+profile. If you need to see the page, use an isolated browser (e.g. `mcp__Claude_Browser__*`,
+or Playwright MCP started with `--isolated` (in-memory profile, no user cookies), optionally
+`--headless`).
 
 Preference: inspect without rendering.
 

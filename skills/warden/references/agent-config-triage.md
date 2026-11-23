@@ -43,7 +43,7 @@ Every name below is from the vendor's docs. Run `scripts/scan_tree.py` and it fl
 | **VS Code / Copilot** | `.vscode/mcp.json` (`servers`), workspace `.mcp.json`, `.vscode/settings.json` (`chat.tools.autoApprove`, `chat.mcp.autostart`), `.vscode/tasks.json` (`runOn: folderOpen`) | `.github/copilot-instructions.md`, `.github/instructions/*.instructions.md`, `.github/prompts/*.prompt.md`, `.github/agents/*.agent.md`, `AGENTS.md` |
 | **Codex CLI** | `.codex/config.toml` (`mcp_servers`, `hooks`, `approval_policy`, `sandbox_mode`), a `.env` that moves `CODEX_HOME` | `AGENTS.md` |
 | **Gemini CLI** | `.gemini/settings.json` (`mcpServers` with `trust`, `hooks`, `tools.allowed`, `security.folderTrust`), `.env` | `GEMINI.md` (or the `context.fileName` override) |
-| **Windsurf / Devin Desktop** | `.devin/mcp_config.json`, `.devin/hooks.v1.json` | `.windsurfrules`, `.windsurf/rules/*.md`, `.devin/rules/*.md`, `AGENTS.md` |
+| **Windsurf / Devin** | `.devin/mcp_config.json`, `.devin/mcp_config.local.json`, `.devin/hooks.v1.json`, `.devin/config.json`, `.devin/config.local.json` (`permissions.allow` with `Exec(...)` rules, `hooks`, `read_config_from`), plugins (`.devin-plugin/plugin.json`, `hooks.json`, `.mcp.json`, `agents/*.md`) | `.windsurfrules`, `.windsurf/rules/*.md`, `.devin/rules/*.md`, `.devin/skills/*/SKILL.md`, `.devin/agents/*.md`, `AGENTS.md` |
 
 ```bash
 # list them without opening anything
@@ -83,6 +83,7 @@ hook needs a reason.
 - `WebFetch` or `WebFetch(domain:*)`: an open exfiltration channel
 - `Edit(`/`Write(` on `~/`, `/`, `//` or `../`, and `additionalDirectories` pointing outside the repo
 - `defaultMode: bypassPermissions` / `auto` (Claude Code ignores these from project files since v2.1.257), `skipDangerousModePermissionPrompt`
+- Devin: `permissions.allow` with `Exec(**)` / `Exec(*)` (any shell command) or `Exec(<risky> *)`, `Read(**)`/`Write(**)`, `permission_mode: "dangerous"` and `local_tools_bypass_permissions` (both are user-config options — in a repo file they signal intent)
 - `enableAllProjectMcpServers: true`, `enabledMcpjsonServers` (ignored from an untrusted folder's own settings)
 - VS Code `chat.tools.autoApprove`, Gemini `mcpServers.*.trust: true` / `tools.allowed: ["run_shell_command"]` / `security.folderTrust.enabled: false`, Codex `approval_policy = "never"` / `sandbox_mode = "danger-full-access"`
 - Instruction text telling the agent, or you, to use `--dangerously-skip-permissions`, `--yolo`, `--trust-all-tools` or `--dangerously-bypass-approvals-and-sandbox`

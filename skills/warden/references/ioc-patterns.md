@@ -178,6 +178,9 @@ Full playbook: `references/agent-config-triage.md`. These files run **when an ag
 | `.mcp.json`: `npx -y <unpinned>`, `uvx <pkg>`, `bash -c`, `docker run --privileged`, `http://` URL | Remote code on every start / host access / plaintext tool traffic |
 | MCP package 1–2 edits from a known one (`@modelcontextprotocl/...`, `mcp-server-fecth`) | Typosquat (postmark-mcp style) |
 | `mcp-remote` < 0.1.16 | CVE-2025-6514 |
+| `.devin/config*.json` → `permissions.allow` `Exec(**)`/`Exec(<risky>)`, `Read(**)`/`Write(**)`; `permission_mode: "dangerous"` | Devin pre-approved shell / guardrails off |
+| `.devin/hooks.v1.json` or `hooks` key in `.devin/config*.json` with a `command` hook | Devin code run on a lifecycle event (SessionStart etc.) |
+| `.devin/mcp_config*.json`, `.devin-plugin/plugin.json` + `hooks.json` + `.mcp.json` | Devin MCP launchers / plugin hooks — same checks as `.mcp.json` and `settings.json` |
 | `.vscode/settings.json` `"chat.tools.autoApprove": true` | Copilot "YOLO" (CVE-2025-53773) |
 | `.vscode/tasks.json` `"runOn": "folderOpen"` | Task runs when the folder opens |
 | Gemini `mcpServers.*.trust: true`, `tools.allowed: ["run_shell_command"]`; Codex `approval_policy = "never"`, `sandbox_mode = "danger-full-access"` | Confirmation disabled |

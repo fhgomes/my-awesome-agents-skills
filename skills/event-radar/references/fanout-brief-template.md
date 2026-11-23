@@ -62,14 +62,14 @@ Referência de `accept_prob` para quem ainda não é conhecido no circuito: JUG 
 Voxxed/JCON/DevBcn 35–50 · Devnexus/Jfokus/Spring I/O 15–30 · Devoxx BE 5–12 · QCon/GOTO por convite ~5.
 
 ## Regras
-1. **Verifique no site oficial / Sessionize / cfp.dev** com WebFetch antes de afirmar data ou prazo. Só agregador
+1. **Verifique no site oficial / Sessionize / cfp.dev** com fetch de URL antes de afirmar data ou prazo. Só agregador
    (cfp.watch, confs.tech, javaconferences.org, developers.events, papercall) → `confidence: media` e cite. Estimativa por
    padrão histórico → `estimado` e explique.
 2. Datas passadas NÃO entram, exceto como referência de padrão para estimar a próxima edição.
 3. Nada inventado: sem CFP achado → `cfp_status: nao_anunciado`, `cfp_deadline: null`.
 4. Inclua eventos "só ir" relevantes (vendor events, DevFests, meetups recorrentes) com `cfp_status: sem_cfp`.
 5. Quantidade > polimento: 40–80 eventos por região, cada um com pelo menos URL + data ou prazo.
-6. A cota de WebSearch esgota em ~100 buscas: use WebFetch direto nas fontes oficiais. Registre o que ficou sem verificar.
+6. A cota de busca web esgota em ~100 buscas: use fetch de URL direto nas fontes oficiais. Registre o que ficou sem verificar.
 7. Sem prosa longa. Salve JSON válido (array) + um .md curto (quantos, top 10 por prioridade, CFPs em 60 dias, lacunas).
 
 ## Escopo deste agente: {REGIÃO}

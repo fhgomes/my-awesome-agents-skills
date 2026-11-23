@@ -60,14 +60,14 @@ Os agregadores cobrem bem conferências médias/grandes da Europa e EUA. **Falta
 DevFests e DevOpsDays regionais, eventos de vendor (Oracle, Microsoft, Google, AWS), LatAm fora das capitais, Brasil fora
 de SP, eventos online (Conf42, vJUG, JakartaOne) e tudo que ainda não publicou data (edições do ano seguinte).
 
-Dispare **um subagente por região** com o template `references/fanout-brief-template.md` (schema JSON idêntico ao do
+Dispare **um subagente por região** (em qualquer agente que suporte subagentes) com o template `references/fanout-brief-template.md` (schema JSON idêntico ao do
 script), peça 40–80 entradas por região, e junte os resultados com `--extra`. Regras que valem para os agentes:
 
 - Verificar no site oficial / Sessionize / cfp.dev antes de afirmar data ou prazo; agregador = `confidence: media`;
   padrão histórico = `date_status: estimado`.
 - Datas passadas não entram, exceto como referência para estimar a próxima edição.
 - Nada inventado: sem CFP achado → `cfp_status: nao_anunciado`, `cfp_deadline: null`.
-- Cota de WebSearch costuma esgotar na metade: priorize fontes oficiais via WebFetch e registre o que ficou sem verificar.
+- A cota de busca web costuma esgotar na metade: priorize fontes oficiais via fetch de URL e registre o que ficou sem verificar.
 
 Playbook por região com as fontes que funcionam (e as que exigem navegador): `references/region-playbook.md`.
 
@@ -78,8 +78,8 @@ python scripts/radar.py verify-cfp https://sessionize.com/<evento>/ https://www.
 ```
 
 Organizadores **estendem prazos**. Um prazo anotado há uma semana pode estar errado nos dois sentidos. Para páginas que
-não respondem a HTTP puro (cfp.dev do Devoxx/Voxxed, cfp.ninja, Luma, Oracle Eloqua), use o navegador do usuário
-(claude-in-chrome) e leia a página; nunca deduza o status.
+não respondem a HTTP puro (cfp.dev do Devoxx/Voxxed, cfp.ninja, Luma, Oracle Eloqua), use o navegador logado do usuário
+(Claude: claude-in-chrome; Devin e outros agentes: Playwright MCP em modo --extension) e leia a página; nunca deduza o status.
 
 ### 5. Pontuar e priorizar (revisão humana obrigatória)
 
@@ -122,4 +122,4 @@ Detalhes, fontes que exigem navegador e truques (paginação MUI do Café Bugado
 - **Windows**: o script força UTF-8 no stdout; se um script seu derivado imprimir "→" ou acento sem isso, quebra em cp1252.
 - **PaperCall derruba o TLS do urllib**; o script cai para o `curl` do sistema automaticamente.
 - **Luma, cfp.dev, cfp.ninja, GDG community, Oracle Eloqua** renderizam por JS: não desperdice tentativas com HTTP puro.
-- Subagentes de pesquisa gastam a cota de WebSearch em ~100 buscas; diga a eles para usar WebFetch nas fontes oficiais.
+- Subagentes de pesquisa gastam a cota de busca web em ~100 buscas; diga a eles para usar fetch de URL nas fontes oficiais.

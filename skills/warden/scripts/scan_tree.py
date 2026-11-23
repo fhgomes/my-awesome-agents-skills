@@ -277,8 +277,10 @@ def hidden_unicode(text: str) -> dict:
 AGENT_SETTINGS_PATHS = {          # JSON that can run commands / grant permissions
     ".claude/settings.json", ".claude/settings.local.json", ".gemini/settings.json",
     ".cursor/hooks.json", ".vscode/settings.json", ".vscode/tasks.json",
-    ".devin/hooks.v1.json", "hooks/hooks.json", ".claude-plugin/plugin.json",
-    ".claude-plugin/marketplace.json",
+    ".devin/hooks.v1.json", ".devin/config.json", ".devin/config.local.json",
+    "hooks/hooks.json", ".claude-plugin/plugin.json",
+    ".claude-plugin/marketplace.json", ".devin-plugin/plugin.json",
+    ".devin-plugin/hooks.json",
 }
 AGENT_MCP_PATHS = {               # MCP server launchers
     ".mcp.json", ".cursor/mcp.json", ".vscode/mcp.json", ".devin/mcp_config.json",
@@ -291,7 +293,8 @@ AGENT_INSTR_NAMES = {             # instruction files read as context
 AGENT_INSTR_SUFFIX = (".instructions.md", ".prompt.md", ".agent.md", ".chatmode.md", ".mdc")
 AGENT_INSTR_DIRS = (
     ".claude/rules/", ".claude/commands/", ".claude/agents/", ".claude/skills/",
-    ".cursor/rules/", ".windsurf/rules/", ".devin/rules/", ".clinerules/",
+    ".cursor/rules/", ".windsurf/rules/", ".devin/rules/", ".devin/skills/",
+    ".devin/agents/", ".clinerules/",
     ".github/instructions/", ".github/prompts/", ".github/agents/",
 )
 
@@ -611,6 +614,24 @@ def check_permissions(ctx: AgentCtx, perms) -> None:
         return
     for r in perms.get("allow") or []:
         r = str(r).strip()
+        m_exec = re.fullmatch(r"Exec\(\s*(.*?)\s*\)", r)
+        if m_exec is not None:                     # Devin permission rule: Exec(<cmd>)
+            inner = m_exec.group(1)
+            if inner in ("", "*", "**"):
+                ctx.add("agent_allow_broad", 8,
+                        "Devin permissions.allow pre-approves ANY shell command (Exec(**))",
+                        needle=f'"{r}"')
+            else:
+                wild = "*" in inner
+                if RISKY_BASH_FAMILY.match("Bash(" + inner):
+                    ctx.add("agent_allow_risky", 7 if wild else 4,
+                            "Devin permissions.allow pre-approves a risky Exec command"
+                            f"{' with a wildcard' if wild else ''}", needle=f'"{r}"')
+            continue
+        if re.fullmatch(r"(?:Read|Write|Edit|Search)\(\s*\*\*\s*\)", r):
+            ctx.add("agent_allow_broad", 6,
+                    "permissions.allow grants the tool on every path (**)", needle=f'"{r}"')
+            continue
         if re.fullmatch(r"Bash(?:\(\s*\**\s*\))?", r):
             ctx.add("agent_allow_broad", 8, "permissions.allow pre-approves ANY shell command", needle=f'"{r}"')
         elif RISKY_BASH_FAMILY.match(r):
@@ -661,6 +682,14 @@ def check_settings_json(ctx: AgentCtx, d: dict, base: str) -> None:
     if d.get("enabledMcpjsonServers"):
         ctx.add("agent_mcp_autoapprove", 5, "enabledMcpjsonServers: the repo pre-approves named MCP servers",
                 needle='"enabledMcpjsonServers"')
+    if str(d.get("permission_mode")) == "dangerous":
+        ctx.add("agent_bypass_mode", 8, "Devin permission_mode 'dangerous': sessions start with no "
+                "prompts at all (a user-config-only option; finding it in a repo file is suspicious)",
+                needle='"permission_mode"')
+    if d.get("local_tools_bypass_permissions") is True:
+        ctx.add("agent_bypass_mode", 6, "Devin local_tools_bypass_permissions: every local-tools "
+                "connection (e.g. `devin connect`) starts with Bypass Permissions on "
+                "(deny/ask rules still apply)", needle='"local_tools_bypass_permissions"')
     for key in ("skipDangerousModePermissionPrompt", "skipAutoPermissionPrompt"):
         if d.get(key) is True:
             ctx.add("agent_bypass_mode", 6, f"{key}: asks to skip the bypass-mode warning "
@@ -791,9 +820,9 @@ def scan_agent_file(path: str, rel: str, kinds: set, out: list, max_bytes: int) 
     out.append({"file": rel, "line": 0, "rule": "agent_config_file", "score": 2,
                 "desc": "AI coding-agent config: loaded or executed when an agent opens this tree",
                 "snippet": ", ".join(sorted(kinds))})
-    if base == "settings.local.json":
+    if base in ("settings.local.json", "config.local.json", "mcp_config.local.json"):
         ctx.add("agent_local_settings_shipped", 4,
-                "Personal settings.local.json shipped in the tree (holds saved approvals, often with inline secrets)")
+                "Personal *.local.json shipped in the tree (holds saved approvals / overrides, often with inline secrets)")
     if kinds & {"settings", "mcp"} and base.endswith(".json"):
         d = loads_lenient(text)
         if not isinstance(d, dict):
@@ -1048,6 +1077,9 @@ def walk(root: str, max_bytes: int) -> tuple[list, int]:
 # ---------------------------------------------------------------- report
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):     # Windows consoles default to cp1252
+            stream.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description="Static sweep for malicious content")
     ap.add_argument("path")
     ap.add_argument("--json", action="store_true")

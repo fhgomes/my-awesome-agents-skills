@@ -34,7 +34,8 @@ current CV, field by field, and prove it was saved.
   written by the agent.
 - **Read before writing.** Extract the current profile text first (section 5), so the report can
   say what changed and nothing is lost by accident.
-- Use the user's existing logged-in browser session (e.g. claude-in-chrome). Never type passwords,
+- Use the user's existing logged-in browser session (Claude: claude-in-chrome; Devin and other
+  agents: Playwright MCP in --extension mode). Never type passwords,
   never call the private API with tokens; the UI is the supported path.
 
 ## 1. Page map

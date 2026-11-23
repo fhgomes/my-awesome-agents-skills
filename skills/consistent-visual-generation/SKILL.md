@@ -24,7 +24,7 @@ This skill is the portable version of the method: it works for any character, in
 ## 0. Two modes
 
 - **New character** (no Character Bible yet): enter **interview mode**, described in `interview.md`
-  (same folder as this skill). Six short rounds of questions with AskUserQuestion, references read
+  (same folder as this skill). Six short rounds of questions with the structured question tool (AskUserQuestion in Claude, ask_user_question in Devin), references read
   before round 1, and at the end the files generated from `templates/character_bible_template.json`.
   Only generate images after that.
 - **Existing character** (already has a Bible + canonical block + approved reference): go straight
@@ -196,7 +196,23 @@ Do not use: a long RENDERING STYLE block in text, "depth-blurred", "practical li
 "approved variation", post-production verbs (grade, treatment, finish, sharpness, color cast).
 Always include a HAIR block (without it the hair comes out loose).
 
-## 4. Operating ChatGPT through the browser (claude-in-chrome)
+## 4. Operating ChatGPT through the browser (the user's logged-in browser)
+
+Works the same in Claude (claude-in-chrome) and in Devin or other agents
+(Playwright MCP in `--extension` mode, driving the user's own Chrome through
+the "Playwright MCP Bridge" extension). Tool names by agent:
+
+| claude-in-chrome (Claude) | Playwright MCP `--extension` (Devin and others) |
+|---|---|
+| `navigate` | `browser_navigate` |
+| `javascript_tool` | `browser_evaluate` (wrap the snippet as `async () => { <snippet>; return <final value>; }` — the last bare expression becomes a `return`) |
+| `computer` (clicks, screenshots) | `browser_click` by ref from `browser_snapshot`, `browser_take_screenshot` |
+| `get_page_text` | `browser_snapshot` |
+| `find` + `file_upload` | `browser_file_upload` (ref from the snapshot) |
+| `tabs_context_mcp`, tab close | `browser_tabs` (`new`, `list`, `close`) |
+| `wait` | `browser_wait_for` |
+
+Downloads land in the Chrome profile's default download folder in both modes.
 
 - **Chat** tab, not Work (the Work field does not accept the insertion).
 - Insert text: `#prompt-textarea` focused + `document.execCommand("insertText", false, text)`.
@@ -207,7 +223,7 @@ Always include a HAIR block (without it the hair comes out loose).
   call; CDP times out at 45 s).
 - **Black frame = image ready but not rendered.** Click the frame (or the card in the Outputs
   panel). If that does not resolve it: F5 on the chat URL. Degraded tab (screenshot "0 width" or
-  timeout): new tab and `tabs_context_mcp({createIfEmpty:true})`.
+  timeout): new tab (`tabs_context_mcp({createIfEmpty:true})` / `browser_tabs {action: "new"}`).
 - "Something went wrong / Retry" 95% of the time: F5 first; the image usually already exists.
 - Download: `fetch(img.src)` → blob → `<a download>`; take the image with the LARGEST vertical
   position (DOM order is not conversation order). Move it out of `~/Downloads`.
@@ -254,7 +270,7 @@ Always include a HAIR block (without it the hair comes out loose).
 - Parallelism: **3 tabs is the safe ceiling**. Above that ChatGPT returns "Too many requests" and the
   batch breaks midway, leaving references without a pair. **Do not close tabs in the middle of a
   batch**: closing one tears down the automation's tab group and the others become orphans. If the
-  group is lost, `tabs_context_mcp({createIfEmpty:true})` recreates it.
+  group is lost, `tabs_context_mcp({createIfEmpty:true})` / `browser_tabs {action: "new"}` recreates it.
 - A generation can genuinely fail ("Something went wrong while generating your image"), which is
   different from the black frame. Check with a screenshot before insisting on F5.
 - Validated on 6 of 6 references of one character: the style-image recipe matches the approved

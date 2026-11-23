@@ -2,10 +2,10 @@
 
 ## Browsing rule
 
-- **Never** open a suspicious URL in the user's real browser (e.g. `mcp__claude-in-chrome__*`).
+- **Never** open a suspicious URL in the user's real logged-in browser (e.g. `mcp__claude-in-chrome__*` in Claude, or Playwright MCP in `--extension` mode in Devin and other agents).
   Session cookies, saved passwords and the logged-in profile get exposed, and a drive-by
   download lands straight on the machine.
-- If rendering is truly necessary, use an isolated browser (e.g. `mcp__Claude_Browser__*`),
+- If rendering is truly necessary, use an isolated browser (e.g. `mcp__Claude_Browser__*`, or Playwright MCP started with `--isolated` (in-memory profile, no user cookies), optionally `--headless`),
   separate from the real profile.
 - Always prefer: inspect over HTTP without rendering.
 - **Never** pipe a response into a shell (`curl ... | bash`), nor download and execute.

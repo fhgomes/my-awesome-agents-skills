@@ -11,7 +11,7 @@ MVP Conf, Oracle, Codecon; não só Brasil: EUA, LatAm, Europa e JUGs remotos; c
    eventos vêm no HTML da página 1), Luma SP (precisou do navegador: SPA).
 3. **5 subagentes em paralelo** (Brasil, EUA/Canadá, Europa, LatAm, online/JUGs) com o `fanout-brief-template.md` e
    o schema JSON idêntico ao do script. Cada um devolveu 58–111 entradas + um `.md` com o que não conseguiu verificar.
-   Todos esgotaram a cota de WebSearch na metade e terminaram com WebFetch nas fontes oficiais.
+   Todos esgotaram a cota de busca web na metade e terminaram com fetch de URL nas fontes oficiais.
 4. **Merge** por `id` + aliases (TDC Porto Alegre ≡ TDCx Porto Alegre; vJUG apareceu em 3 agentes) → 426 eventos:
    BR 99 · EU 115 · NA 84 · LATAM 67 · ONLINE 51 · OTHER 10.
 5. **Verificação manual dos "agir agora"** no Sessionize: um CFP registrado como "fechado em 22/09" estava **aberto até

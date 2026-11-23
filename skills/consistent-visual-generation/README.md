@@ -13,7 +13,7 @@ Keep a character looking like itself across dozens of generations (ChatGPT / GPT
 - **Prompt recipe** — the style-reference header that avoids the "classified as an edit" refusal, plus the photographic vocabulary that quietly pushes toward photorealism
 - **Folder and version convention** — version in every canonical filename, `history/` never deleted, current-version pointer in the library index
 - **Canon promotion** — what to do when the user approves a variant that diverges from the Bible (promote first, generate later)
-- **Browser ops** — operating ChatGPT via claude-in-chrome: unsticking black frames, downloading at full size, uploading to Drive (synced-folder route for large batches), safe parallelism and rate-limit pacing
+- **Browser ops** — operating ChatGPT via the user's logged-in browser (claude-in-chrome in Claude, Playwright MCP --extension in Devin and other agents): unsticking black frames, downloading at full size, uploading to Drive (synced-folder route for large batches), safe parallelism and rate-limit pacing
 
 ## Quick Start
 

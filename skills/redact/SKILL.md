@@ -5,7 +5,7 @@ description: >
   private keys), internal IPs/hostnames and personal data
   (PII such as Brazilian CPF/CNPJ, e-mail, phone; PCI card numbers; PHI) in the working tree
   AND git history. Also audits AI coding-agent config (Claude Code .claude/settings.local.json
-  "don't ask again" approvals, .mcp.json, transcripts; Cursor, VS Code, Codex),
+  "don't ask again" approvals, .mcp.json, transcripts; Cursor, VS Code, Codex, Devin),
   where inline passwords sit in plain text, and whether those files are tracked or shipped in
   Docker images. Teaches remediation and rotation. Use for "I'm making this repo public", "can I publish this?",
   "I committed .env by mistake", "remove it from history", "did
@@ -132,7 +132,7 @@ only by the machine's **global** excludes, so it gets committed elsewhere and sh
 ```bash
 python3 scripts/scan_agent_configs.py /path/to/repo-or-workspace
 ```
-Finds the agent files (Claude Code, Cursor, VS Code, Gemini CLI, Codex, Continue, Aider),
+Finds the agent files (Claude Code, Cursor, VS Code, Gemini CLI, Codex, Devin, Continue, Aider),
 nested repos included; parses permission lists and MCP `env`/`headers`/`args`; reports
 whether each file is tracked, in history, ignored by the project `.gitignore` or only
 globally, and Dockerfiles without a `.dockerignore` excluding `.claude/`. Never prints a
@@ -196,7 +196,9 @@ credentials in URLs (`https://user:pass@host`).
 Inline credentials in approved commands and MCP config: `.claude/settings.local.json`,
 `.claude/settings.json`, `.mcp.json`, a copied `~/.claude.json`, transcripts
 (`.claude/projects/**/*.jsonl`), `.cursor/mcp.json`, `.vscode/mcp.json`,
-`.gemini/settings.json`, `.codex/config.toml` + `rules/*.rules`, `.continue/`,
+`.gemini/settings.json`, `.codex/config.toml` + `rules/*.rules`,
+`.devin/config*.json` + `.devin/mcp_config*.json` + `.devin/hooks.v1.json`
+(project and `%APPDATA%\devin\` / `~/.config/devin/`), `.continue/`,
 `.aider.conf.yml`. A `${VAR}` reference is the correct pattern; a literal is a finding.
 
 ### Personal data (PII / PCI / PHI)

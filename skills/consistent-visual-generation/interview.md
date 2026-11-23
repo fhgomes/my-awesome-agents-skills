@@ -4,7 +4,7 @@ Triggers: "create a new character", "I want to define an avatar", "/consistent-v
 "interview me about the character", or any character request that does not yet have a Character Bible.
 
 Rules of the mode:
-- **One round at a time**, with AskUserQuestion (2 to 4 questions per round, options + "Other").
+- **One round at a time**, with the structured question tool (AskUserQuestion in Claude, ask_user_question in Devin; 2 to 4 questions per round, options + "Other").
   Never dump all 6 rounds at once. Never invent an answer: if the user does not know, mark it
   `"to_be_defined"` and move on.
 - **References first.** Before round 1, ask for images (local path, folder, Drive link, or "I have

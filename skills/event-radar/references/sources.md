@@ -16,14 +16,14 @@ resto continua.
 | Páginas genéricas de CFP | ex.: `ndcsecurity.com/call-for-papers` | HTML | "Deadline: 18 October 2026" | `verify-cfp` (regex deadline/closes/until) |
 | GitHub API | `https://api.github.com/repos/<owner>/<repo>/contents/<path>` | JSON | listar tópicos/anos disponíveis nas fontes acima | — |
 
-## Funcionam no servidor (WebFetch), mas bloqueiam o PC às vezes
+## Funcionam via fetch de URL, mas bloqueiam o PC às vezes
 
 | Fonte | Sintoma | Saída |
 |---|---|---|
-| PaperCall (`papercall.io/<slug>`) | `urllib` recebe `SSL: UNEXPECTED_EOF`; `curl` pode voltar vazio/403 | usar WebFetch (roda no servidor) ou o navegador do usuário; o texto tem "CFP closes at September 28, 2026 20:38 UTC" |
+| PaperCall (`papercall.io/<slug>`) | `urllib` recebe `SSL: UNEXPECTED_EOF`; `curl` pode voltar vazio/403 | usar a ferramenta de fetch de URL do agente ou o navegador logado do usuário (claude-in-chrome / Playwright MCP --extension); o texto tem "CFP closes at September 28, 2026 20:38 UTC" |
 | cfp.watch, confs.tech site, javaconferences.org site | páginas renderizadas por JS | ir direto aos repositórios/JSON acima |
 
-## Exigem navegador (claude-in-chrome) — não gaste tentativas com HTTP puro
+## Exigem o navegador logado do usuário (claude-in-chrome / Playwright MCP --extension) — não gaste tentativas com HTTP puro
 
 | Fonte | Como ler |
 |---|---|

@@ -13,7 +13,7 @@ ships it.
 
 What it does, for every directory tree given (nested repos included):
   - finds agent config files: Claude Code, Cursor, VS Code, Gemini CLI, Codex,
-    Continue, Aider, SpecStory (see AGENT_FILES below)
+    Devin, Continue, Aider, SpecStory (see AGENT_FILES below)
   - parses JSON/TOML (permission lists, MCP env/headers/args, env blocks) and
     scans the text formats line by line
   - flags inline credentials in command lines + provider-format tokens
@@ -94,6 +94,21 @@ AGENT_FILES = [
     (r"(^|/)\.codex/config\.toml$", "toml", "Codex config (mcp_servers)"),
     (r"(^|/)\.codex/rules/[^/]+\.rules$", "text", "Codex approved-command rules"),
     (r"(^|/)\.codex/history\.jsonl$", "transcript", "Codex history"),
+    (r"(^|/)\.devin/config\.local\.json$", "json",
+     "Devin project-local config (gitignored overrides: permissions, hooks)"),
+    (r"(^|/)\.devin/config\.json$", "json",
+     "Devin project settings (permissions, hooks, read_config_from)"),
+    (r"(^|/)\.devin/mcp_config\.local\.json$", "json",
+     "Devin project-local MCP servers (gitignored)"),
+    (r"(^|/)\.devin/mcp_config\.json$", "json", "Devin project MCP servers"),
+    (r"(^|/)\.devin/hooks\.v1\.json$", "json",
+     "Devin lifecycle hooks (shell commands on agent events)"),
+    (r"(^|/)\.devin-plugin/plugin\.json$", "json",
+     "Devin plugin manifest (can declare MCP servers and hooks)"),
+    (r"(^|/)devin/mcp_config\.json$", "json",
+     "Devin user MCP servers (~/.config/devin or %APPDATA%/devin)"),
+    (r"(^|/)devin/config\.json$", "json",
+     "Devin user settings (~/.config/devin or %APPDATA%/devin)"),
     (r"(^|/)\.continue/mcpServers/[^/]+\.(ya?ml|json)$", "auto", "Continue MCP server"),
     (r"(^|/)\.continue/config\.(ya?ml|json)$", "auto", "Continue config"),
     (r"(^|/)\.aider\.conf\.ya?ml$", "text", "Aider config (may hold API keys)"),
@@ -106,6 +121,7 @@ AGENT_RX = [(re.compile(rx), kind, label) for rx, kind, label in AGENT_FILES]
 LOCAL_ONLY = re.compile(r"(^|/)(\.claude/settings\.local\.json|\.claude\.json(\.[^/]*)?|"
                         r"\.claude/\.credentials\.json|CLAUDE\.local\.md|"
                         r"\.claude/projects/.+|\.claude/history\.jsonl|"
+                        r"\.devin/config\.local\.json|\.devin/mcp_config\.local\.json|"
                         r"\.codex/history\.jsonl|\.aider\.(chat\.history\.md|input\.history))$")
 
 # ------------------------------------------------------------------ rules
@@ -735,6 +751,9 @@ class Audit:
                              if n.strip() and self.classify(n.strip())})
         uses_claude = os.path.isdir(os.path.join(repo, ".claude")) or \
             any(p.endswith(".claude/settings.local.json") for p in agent_hist)
+        uses_devin = os.path.isdir(os.path.join(repo, ".devin")) or \
+            any(p in (".devin/config.local.json", ".devin/mcp_config.local.json")
+                for p in agent_hist)
 
         if uses_claude:
             state, _ = ignore_state(repo, ".claude/settings.local.json")
@@ -747,6 +766,19 @@ class Audit:
                          "Project .gitignore does not cover .claude/settings.local.json "
                          f"({what}); another clone, CI or `git add -f` will commit it",
                          os.path.normpath(os.path.join(relrepo, ".gitignore")), "-")
+
+        if uses_devin:
+            for local in (".devin/config.local.json", ".devin/mcp_config.local.json"):
+                state, _ = ignore_state(repo, local)
+                if state != "project":
+                    what = {"global": "only the machine's global excludes ignore it",
+                            "repo-local": "only .git/info/exclude ignores it (not shared)",
+                            "project-untracked": "the .gitignore that covers it is not tracked",
+                            }.get(state, "nothing ignores it")
+                    self.add("medium", "gitignore_missing_local_settings",
+                             f"Project .gitignore does not cover {local} "
+                             f"({what}); another clone, CI or `git add -f` will commit it",
+                             os.path.normpath(os.path.join(relrepo, ".gitignore")), "-")
 
         for p in agent_hist:
             kind, label = self.classify(p)
@@ -923,8 +955,9 @@ def main() -> int:
         return 0
     print("=" * 70)
     print("NEXT: (1) ROTATE every credential listed (history, forks and images keep copies),")
-    print("(2) rewrite the rules without the secret, (3) add .claude/settings.local.json to the")
-    print("project .gitignore AND .dockerignore, (4) clean history / rebuild images.")
+    print("(2) rewrite the rules without the secret, (3) add the agent local files")
+    print("(.claude/settings.local.json, .devin/*.local.json) to the project .gitignore")
+    print("AND .dockerignore, (4) clean history / rebuild images.")
     print("See references/agent-config-leaks.md.")
     return 1
 

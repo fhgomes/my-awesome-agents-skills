@@ -3,9 +3,11 @@
 A collection of agent skills and configurations for AI assistants, built for [OpenClaw](https://openclaw.ai).
 
 > **Design principle — every item is self-contained.** You can take just one
-> `skills/<name>/` folder and install it (Claude, OpenClaw, or any runtime that loads
+> `skills/<name>/` folder and install it (Claude, OpenClaw, Devin, or any runtime that loads
 > a SKILL.md), or just one agent/area under `openclaw/<area>/`, without needing
-> anything from the other trees. Cross-links between items are optional "see also"
+> anything from the other trees. In Devin, skills load from the global skills
+> directory (`~/.config/devin/skills/`, `%APPDATA%\devin\skills` on Windows) or
+> as a plugin folder with `skills/` inside — the same SKILL.md works unchanged. Cross-links between items are optional "see also"
 > pointers, never prerequisites. Content is deliberately duplicated between variants
 > when needed — isolation beats DRY here.
 
