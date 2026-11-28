@@ -1,0 +1,5 @@
+sink,chain,entry_point,ui_screen,ui_route,test,coverage,action
+CatalogClient.getItem,ItemLookupService.describe > OrderQueryService.findDetail > OrderController.getOrder,GET /api/orders/{id},Order detail,/orders/:id,orders-e2e/cypress/e2e/orders/order-detail.cy.ts; OrderQueryServiceIT,covered,Run both tests before and after the switch
+CatalogClient.getItemCached,ItemSearchService.preview > ItemController.preview,GET /api/items/{code},New order (item picker),/orders/new,orders-e2e/cypress/e2e/orders/new-order.cy.ts,happy-path,Add cases for an item with no supplier and an unknown code; test both by hand as a buyer until they exist
+CatalogClient.getItem,ApprovalDelegate.execute > BPMN service task checkItemStatus,POST /api/orders/{id}/approve,Order detail (Approve button),/orders/:id,OrderApprovalProcessTest (catalog mocked),happy-path,Add a process test with an inactive item; approve one order by hand as an approver
+CatalogClient.getItem,OpenOrderRefresher.refresh,@Scheduled nightly job,no UI caller found,,none,not-covered,Write an integration test for refresh(); run the job by hand in staging and compare three orders

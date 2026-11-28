@@ -49,6 +49,7 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | Skill | Description |
 |-------|-------------|
 | [andela-profile](skills/andela-profile/SKILL.md) | Fill in or rewrite an Andela talent profile from the user's CV through the logged-in browser — field map and limits, markdown rules per field, automatic skill extraction, site-specific automation traps (Enter submits from the skills box, checkbox ignores programmatic input), reload-and-verify |
+| [companion-map](skills/companion-map/SKILL.md) | Map the companion repositories of a system (back end, front end, E2E tests, the services they call) into one cross-linked harness: one card per repo with evidence, an index with the call graph, and a "Companions" router in each repo's AGENTS.md, with a worked multi-repo example |
 | [config-guardian](skills/config-guardian/SKILL.md) | Safe OpenClaw config updates — backup, validate, diff, rollback |
 | [consistent-visual-generation](skills/consistent-visual-generation/SKILL.md) | Consistent AI character/persona generation — Character Bible, canonical references, 6-round interview, file/version conventions, canon promotion, and calibration of subtle identity cues |
 | [event-radar](skills/event-radar/SKILL.md) | Map tech events and CFPs by area (Java, AI, cloud, security…) and region (BR, LatAm, US/CA, EU, online) over N months — plain-HTTP scraping of public calendars (developers.events, confs.tech, javaconferences.org, Café Bugado), CFP deadline verification on Sessionize/PaperCall, acceptance-chance heuristic, HTML panel, and a playbook for parallel per-region research agents (PT-BR) |
@@ -61,10 +62,28 @@ openclaw/        # OpenClaw-specific agents, guides, and areas — each self-con
 | [mood-avatar-rotation](skills/mood-avatar-rotation/SKILL.md) | Turn a character's canonical references into a mood-based Discord avatar rotation — Haar face detection validated by an eye cascade, hand-checked overrides, zoom by framing, contact-sheet check, a mood -> roles manifest built from library tags, and a no-repeat daily switch (busy day -> focus, Monday -> briefing) that also accepts a `reference_id` |
 | [obsidian-daily](skills/obsidian-daily/SKILL.md) | Manage Obsidian daily notes via obsidian-cli |
 | [openclaw-specialist](skills/openclaw-specialist/SKILL.md) | End-to-end OpenClaw ops — config protocol, cron authoring, channels, upgrades, diagnostics |
+| [parity-check](skills/parity-check/SKILL.md) | Prove an old integration path and its replacement return equivalent data before switching callers: two test-only routes, the same inputs, a field-by-field comparison (names, nesting, lists, null vs empty, dates, numbers, defaults, error shapes) and a generic k6 script that fails on any difference |
 | [perf-engineer](skills/perf-engineer/SKILL.md) | Performance engineer persona — measures before claiming, reviews diffs for N+1 / unpaged reads / missing indexes / unmeasured claims, answers as Diagnosis / Evidence / Fix / Verification / Budget; bundled checklists and Day 1 / Week 1 plans |
+| [reverse-trace](skills/reverse-trace/SKILL.md) | Trace backwards from one final integration call (SOAP/REST client, query, publish) through services, endpoints, jobs and workflow steps to the front-end screens and the tests, grade each path covered / happy-path / not-covered, and turn the result into a test plan, with a worked example |
 | [slides-html](skills/slides-html/SKILL.md) | HTML slide decks as one self-contained file on a fixed 1920×1080 stage (never reflows), generated from reusable design-system files (palette with accent rules, type scale in stage px, components, 30 slide recipes in the bundled `nightsky-java` system) — style round with real previews, PPTX/PDF import, Playwright PDF/PNG export, metrics-first browser verification |
 | [test-engineer](skills/test-engineer/SKILL.md) | Test engineering specialist — picks the layer (integration-first, mocks for pure logic), demands red-then-green with pasted output, refuses weakened assertions / `@Disabled` / `.only`, 403-never-404 ownership probes, fake-coverage greps, review checklist |
 | [video-editing](skills/video-editing/SKILL.md) | CLI video editing with ffmpeg — frame-accurate cuts, 9:16/1:1/4:5 formats, CapCut-style word-level captions, xfade catalog, zoom+flash+whoosh transitions, color grading, runtime GPU/NVENC detection, with a [parameterized example pipeline](skills/video-editing/examples/interview-clip-pipeline/) |
+
+## Legacy modernization kit
+
+Three skills for replacing an integration in a system that spans several repositories (for example
+SOAP to REST, or one client library to another). Use them in this order:
+
+1. [companion-map](skills/companion-map/) — map the back end, front end, E2E tests and the services
+   they call into one cross-linked harness, so the agent sees the whole system.
+   Example: [orders-ecosystem](skills/companion-map/examples/orders-ecosystem/).
+2. [reverse-trace](skills/reverse-trace/) — start at the final integration call and walk back to the
+   endpoints, the screens and the tests that reach it; the coverage map becomes the test plan.
+   Example: [catalog-get-item](skills/reverse-trace/examples/catalog-get-item/).
+3. [parity-check](skills/parity-check/) — call the old path and the new path with the same input and
+   compare the data field by field before any caller is switched.
+
+Each skill works on its own; together they cover map, trace and proof.
 
 ## Security
 
